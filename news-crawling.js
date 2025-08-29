@@ -10,6 +10,10 @@ const { logWithTime } = require('./common');
   const newsArr = [];
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+  console.log(
+    'GEMINI_API_KEY:',
+    process.env.GEMINI_API_KEY?.slice(0, 5) + '****'
+  );
   logWithTime('크롤링 시작', '⏰');
   for (const sc of scList) {
     const page = await browser.newPage();

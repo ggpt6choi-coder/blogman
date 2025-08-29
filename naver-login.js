@@ -194,6 +194,10 @@ async function writeBlog({
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   });
   const page = await context.newPage();
+  // navigator.webdriver 제거 (로봇 탐지 우회)
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
   logWithTime('시작');
   await naverLogin(page);
   logWithTime('로그인 완료');

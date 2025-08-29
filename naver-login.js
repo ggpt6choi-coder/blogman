@@ -30,10 +30,16 @@ async function writeBlog({
   await page.goto(`https://blog.naver.com/${blogName}?Redirect=Write`);
 
   // mainFrame iframe 접근
+  // iframe DOM 먼저 확인
+  await page.waitForSelector('iframe#mainFrame', { timeout: 15000 });
+  // 그 다음 frame 객체 추출
   const frame = await page.frame({ name: 'mainFrame' });
-  await frame
-    .waitForSelector('iframe#mainFrame', { timeout: 10000 })
-    .catch(() => {});
+  if (!frame) throw new Error('mainFrame을 찾지 못했습니다');
+
+  // const frame = await page.frame({ name: 'mainFrame' });
+  // await frame
+  //   .waitForSelector('iframe#mainFrame', { timeout: 10000 })
+  //   .catch(() => {});
 
   // '취소' 버튼 처리 (있으면 클릭)
   const cancelBtn = await frame
@@ -179,8 +185,15 @@ async function writeBlog({
 // 실행 부분
 // ==========================
 (async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  const context = await browser.newContext({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
+  const page = await context.newPage();
   logWithTime('시작');
   await naverLogin(page);
   logWithTime('로그인 완료');
@@ -188,7 +201,7 @@ async function writeBlog({
   const fs = require('fs');
   const newsList = JSON.parse(fs.readFileSync('./news.json', 'utf-8'));
 
-  for (let i = 24; i < newsList.length; i++) {
+  for (let i = 0; i < newsList.length; i++) {
     const news = newsList[i];
     if (news.newTitle === '[변환 실패]' || news.newArticle === '[변환 실패]')
       continue;

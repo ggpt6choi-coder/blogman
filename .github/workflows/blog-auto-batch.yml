@@ -3,7 +3,7 @@ name: Blog Auto Batch
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # 매일 0시 실행 (원하는 주기로 수정)
+    - cron: '0 21 * * *' # 매일 0시 실행 (원하는 주기로 수정)
 
 jobs:
   run-batch:
@@ -29,14 +29,6 @@ jobs:
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-
-      - name: Run news-crawling.js
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          BLOG_NAME: ${{ secrets.BLOG_NAME }}
-          NAVER_ID: ${{ secrets.NAVER_ID }}
-          NAVER_PW: ${{ secrets.NAVER_PW }}
-        run: node news-crawling.js
 
       - name: Run naver-login.js
         env:

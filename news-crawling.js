@@ -179,7 +179,10 @@ const { logWithTime } = require('./common');
       }
       logWithTime(
         `[${sc}] link = ${link}, 저장? ${
-          newArticle !== '[본문 없음]' && newTitle !== '[제목 없음]'
+          newArticle !== '[본문 없음]' &&
+          newTitle !== '[제목 없음]' &&
+          newArticle !== '[변환 실패]' &&
+          newTitle !== '[변환 실패]'
         }, count = ${newsArr.length}`
       );
       await newPage.close();

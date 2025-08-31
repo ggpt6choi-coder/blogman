@@ -36,11 +36,6 @@ async function writeBlog({
   const frame = await page.frame({ name: 'mainFrame' });
   if (!frame) throw new Error('mainFrame을 찾지 못했습니다');
 
-  // const frame = await page.frame({ name: 'mainFrame' });
-  // await frame
-  //   .waitForSelector('iframe#mainFrame', { timeout: 10000 })
-  //   .catch(() => {});
-
   // '취소' 버튼 처리 (있으면 클릭)
   const cancelBtn = await frame
     .waitForSelector('button.se-popup-button.se-popup-button-cancel', {
@@ -81,23 +76,16 @@ async function writeBlog({
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 
-  // // 클립보드에 본문 복사 후 붙여넣기
-  // // 클립보드에 본문 복사 (브라우저 내 navigator.clipboard 사용)
-  // await frame.evaluate(async (text) => {
-  //   await navigator.clipboard.writeText(text);
-  // }, content);
+  // 본문 길면 오류나는거 방지 차원에서 본문 반틈 나눠서 작성
+  const half = Math.floor(content.length / 2);
+  const firstHalf = content.slice(0, half);
+  const secondHalf = content.slice(half);
 
-  // // 붙여넣기 (Cmd+V)
-  // await frame.focus(contentSpanSelector);
+  await frame.type(contentSpanSelector, firstHalf, { delay: 10 });
+  // await page.keyboard.press('Enter');
+  await frame.waitForTimeout(200);
+  await frame.type(contentSpanSelector, secondHalf, { delay: 10 });
 
-  // const pasteKey = process.platform === 'darwin' ? 'Meta' : 'Control';
-  // await page.keyboard.down(pasteKey);
-  // await page.keyboard.press('KeyV');
-  // await page.keyboard.up(pasteKey);
-  // // await page.keyboard.down('Meta');
-  // // await page.keyboard.press('KeyV');
-  // // await page.keyboard.up('Meta');
-  await frame.type(contentSpanSelector, content, { delay: 10 });
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   await page.keyboard.press('Enter');
@@ -123,62 +111,65 @@ async function writeBlog({
   await page.waitForTimeout(300);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
-  await frame.type(contentSpanSelector, hashTag.join(' '), { delay: 80 });
+  const spans = await frame.$$(contentSpanSelector);
+  const lastSpan = spans[spans.length - 1];
+  if (lastSpan) {
+    await lastSpan.type(hashTag.join(' '), { delay: 80 });
+  }
+  // await frame.type(contentSpanSelector, hashTag.join(' '), { delay: 80 });
 
   // 발행 세팅
-  if (true || new Date().getFullYear() === 1) {
-    // 1. 발행 버튼 클릭 (frame context)
-    const publishBtnSelector =
-      'div.header__Ceaap > div > div.publish_btn_area__KjA2i > div:nth-child(2) > button';
-    await frame.waitForSelector(publishBtnSelector, { timeout: 10000 });
-    await frame.click(publishBtnSelector);
+  // 1. 발행 버튼 클릭 (frame context)
+  const publishBtnSelector =
+    'div.header__Ceaap > div > div.publish_btn_area__KjA2i > div:nth-child(2) > button';
+  await frame.waitForSelector(publishBtnSelector, { timeout: 10000 });
+  await frame.click(publishBtnSelector);
 
-    // 2. #radio_time2 라디오버튼 등장 시 클릭 (frame context)
-    await frame.waitForSelector('#radio_time2', { timeout: 10000 });
-    await frame.evaluate(() => {
-      document.querySelector('#radio_time2')?.click();
-    });
+  // 2. #radio_time2 라디오버튼 등장 시 클릭 (frame context)
+  await frame.waitForSelector('#radio_time2', { timeout: 10000 });
+  await frame.evaluate(() => {
+    document.querySelector('#radio_time2')?.click();
+  });
 
-    // 3. 시간설정 (2개씩 같은 시간)
-    const group = Math.floor(idx / 2);
-    const baseTime = new Date();
-    baseTime.setMinutes(baseTime.getMinutes() + 10 + group * 10);
-    let hour = baseTime.getHours();
-    let minute = baseTime.getMinutes();
-    minute = Math.ceil(minute / 10) * 10;
-    if (minute === 60) {
-      minute = 0;
-      hour += 1;
-    }
-    if (hour === 24) {
-      hour = 0;
-    }
-    const hourStr = hour.toString().padStart(2, '0');
-    const minuteStr = minute.toString().padStart(2, '0');
-    await frame.selectOption('select.hour_option__J_heO', hourStr);
-    await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
-
-    // 4. 카테고리 설정
-    const typeMap = {
-      sisa: '시사',
-      spo: '스포츠',
-      ent: '연예',
-      pol: '정치',
-      eco: '경제',
-      soc: '사회',
-      int: '세계',
-      its: 'IT/과학',
-    };
-    const categoryName = typeMap[type] || type;
-    await frame.click('button[aria-label="카테고리 목록 버튼"]');
-    await frame.click(
-      `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
-    );
-
-    // 발행버튼 클릭
-    await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
-    await frame.click('.confirm_btn__WEaBq');
+  // 3. 시간설정 (2개씩 같은 시간)
+  const group = Math.floor(idx / 2);
+  const baseTime = new Date();
+  baseTime.setMinutes(baseTime.getMinutes() + 10 + group * 10);
+  let hour = baseTime.getHours();
+  let minute = baseTime.getMinutes();
+  minute = Math.ceil(minute / 10) * 10;
+  if (minute === 60) {
+    minute = 0;
+    hour += 1;
   }
+  if (hour === 24) {
+    hour = 0;
+  }
+  const hourStr = hour.toString().padStart(2, '0');
+  const minuteStr = minute.toString().padStart(2, '0');
+  await frame.selectOption('select.hour_option__J_heO', hourStr);
+  await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
+
+  // 4. 카테고리 설정
+  const typeMap = {
+    sisa: '시사',
+    spo: '스포츠',
+    ent: '연예',
+    pol: '정치',
+    eco: '경제',
+    soc: '사회',
+    int: '세계',
+    its: 'IT/과학',
+  };
+  const categoryName = typeMap[type] || type;
+  await frame.click('button[aria-label="카테고리 목록 버튼"]');
+  await frame.click(
+    `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
+  );
+
+  // 발행버튼 클릭
+  await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
+  await frame.click('.confirm_btn__WEaBq');
 }
 
 // ==========================
@@ -186,7 +177,7 @@ async function writeBlog({
 // ==========================
 (async () => {
   const browser = await chromium.launch({
-    headless: true,
+    headless: false,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
   const context = await browser.newContext({
@@ -210,11 +201,10 @@ async function writeBlog({
     if (news.newTitle === '[변환 실패]' || news.newArticle === '[변환 실패]')
       continue;
 
-    if (news.newArticle.length > 2201) {
-      logWithTime(
-        `스킵(${i}, ${news.newArticle.length}자) : ${news.title})`,
-        '🥲'
-      );
+    if (false && news.newArticle.length > 2201) {
+      const errorLog = `스킵(${i}, ${news.newArticle.length}자) : ${news.title})`;
+      logWithTime(errorLog, '🥲');
+      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
       continue;
     }
 
@@ -228,13 +218,20 @@ async function writeBlog({
       type: news.type,
       idx: i,
     };
-    await writeBlog(blogData);
-
-    console.log(
-      `🤖[${new Date().toLocaleString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-      })}] 작성 완료(${i + 1}/${newsList.length})`
-    );
+    try {
+      await writeBlog(blogData);
+      console.log(
+        `🤖[${new Date().toLocaleString('ko-KR', {
+          timeZone: 'Asia/Seoul',
+        })}] 작성 완료(${i + 1}/${newsList.length})`
+      );
+    } catch (err) {
+      const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${
+        news.title
+      }\nError: ${err && err.stack ? err.stack : err}\n`;
+      console.error(errorLog);
+      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
+    }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }
   logWithTime('모든 글 작성 완료');

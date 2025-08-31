@@ -35,6 +35,6 @@ __pycache__/
 .firebase/
 
 #log, data file
-.news.json
+news.json
 .gemini-error.log
 .naver-upload-error.log

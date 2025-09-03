@@ -184,6 +184,6 @@ const { log } = require('console');
     await page.close();
   }
   fs.writeFileSync('news.json', JSON.stringify(newsArr, null, 2), 'utf-8');
-  logWithTime(`크롤링 완료 (저장된 기사 수: ${newsArr.length})`);
+  logWithTime(`뉴스 데이터 저장 완료: ${newsArr.length}`);
   await browser.close();
 })();

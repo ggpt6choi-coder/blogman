@@ -7,8 +7,8 @@ const { logWithTime } = require('./common');
 // ==========================
 async function naverLogin(page) {
   await page.goto('https://nid.naver.com/nidlogin.login');
-  await page.fill('#id', process.env.NAVER_ID);
-  await page.fill('#pw', process.env.NAVER_PW.replace(/"/g, ''));
+  await page.fill('#id', process.env.NAVER_ID_2);
+  await page.fill('#pw', process.env.NAVER_PW_2.replace(/"/g, ''));
   await page.click('#log\\.login');
   await page.waitForNavigation();
 }
@@ -152,14 +152,10 @@ async function writeBlog({
 
   // 4. 카테고리 설정
   const typeMap = {
-    sisa: '시사',
-    spo: '스포츠',
-    ent: '연예',
-    pol: '정치',
-    eco: '경제',
-    soc: '사회',
-    int: '세계',
-    its: 'IT/과학',
+    경제: '경제',
+    사회: '사회',
+    기업: '기업',
+    문화: '문화',
   };
   const categoryName = typeMap[type] || type;
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
@@ -177,7 +173,7 @@ async function writeBlog({
 // ==========================
 (async () => {
   const browser = await chromium.launch({
-    headless: true,
+    headless: false,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
   const context = await browser.newContext({
@@ -194,7 +190,7 @@ async function writeBlog({
   logWithTime('로그인 완료');
   // news.json에서 데이터 읽기
   const fs = require('fs');
-  const newsList = JSON.parse(fs.readFileSync('./news.json', 'utf-8'));
+  const newsList = JSON.parse(fs.readFileSync('./mk-news.json', 'utf-8'));
 
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {
@@ -202,16 +198,9 @@ async function writeBlog({
     if (news.newTitle === '[변환 실패]' || news.newArticle === '[변환 실패]')
       continue;
 
-    if (false && news.newArticle.length > 2201) {
-      const errorLog = `스킵(${i}, ${news.newArticle.length}자) : ${news.title})`;
-      logWithTime(errorLog, '🥲');
-      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
-      continue;
-    }
-
     const blogData = {
       page,
-      blogName: process.env.BLOG_NAME,
+      blogName: process.env.BLOG_NAME_2,
       title: news.newTitle || news.title,
       content: news.newArticle,
       url: news.url,
@@ -231,8 +220,6 @@ async function writeBlog({
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }
-  logWithTime(
-    `모든 글 작성 완료 (실패 건수: ${errCount} / ${newsList.length})`
-  );
+  logWithTime(`모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`);
   await browser.close();
 })();

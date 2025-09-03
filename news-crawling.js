@@ -3,6 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { chromium } = require('playwright');
 const fs = require('fs');
 const { logWithTime } = require('./common');
+const { log } = require('console');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -17,7 +18,6 @@ const { logWithTime } = require('./common');
     const url = `https://news.nate.com/rank/interest?sc=${sc}`;
     await page.goto(url);
     const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
-    logWithTime(`[${sc}] 수집할 기사 링크: ${links.length}`);
     for (const link of links) {
       const newPage = await browser.newPage();
       await newPage.goto(link);
@@ -179,20 +179,11 @@ const { logWithTime } = require('./common');
           hashTag,
         });
       }
-      logWithTime(
-        `[${sc}] link = ${link}, 저장? ${
-          newArticle !== '[본문 없음]' &&
-          newTitle !== '[제목 없음]' &&
-          newArticle !== '[변환 실패]' &&
-          newTitle !== '[변환 실패]'
-        }, count = ${newsArr.length}`
-      );
       await newPage.close();
     }
     await page.close();
   }
-  logWithTime(`크롤링 완료`, '⏰');
   fs.writeFileSync('news.json', JSON.stringify(newsArr, null, 2), 'utf-8');
-  logWithTime(`뉴스 데이터 저장 완료: ${newsArr.length}`);
+  logWithTime(`크롤링 완료 (저장된 기사 수: ${newsArr.length})`);
   await browser.close();
 })();

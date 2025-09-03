@@ -41,7 +41,7 @@ async function fetchAndExtractXML(url) {
     //  "https://www.mk.co.kr/rss/50700001/", // 게임
   ];
 
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const newsArr = [];

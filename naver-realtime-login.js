@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime } = require('./common');
+const fs = require('fs');
 
 // ==========================
 // 네이버 로그인 함수
@@ -156,7 +157,14 @@ async function writeBlog({
     사회: '사회',
     기업: '기업',
     문화: '문화',
+    정치: '정치',
+    국제: '국제',
+    증권: '증권',
+    부동산: '부동산',
+    스포츠: '스포츠',
+    게임: '게임',
   };
+
   const categoryName = typeMap[type] || type;
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
   await frame.click(
@@ -164,8 +172,8 @@ async function writeBlog({
   );
 
   // 발행버튼 클릭
-  await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
-  await frame.click('.confirm_btn__WEaBq');
+  // await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
+  // await frame.click('.confirm_btn__WEaBq');
 }
 
 // ==========================
@@ -188,9 +196,11 @@ async function writeBlog({
   logWithTime('시작');
   await naverLogin(page);
   logWithTime('로그인 완료');
-  // news.json에서 데이터 읽기
-  const fs = require('fs');
-  const newsList = JSON.parse(fs.readFileSync('./mk-news.json', 'utf-8'));
+
+  // 카테고리명 인자 받아서 해당 JSON 파일 읽기
+  const category = process.argv[2] || 'economy';
+  const fileName = `./mk-data/mk-news-${category}.json`;
+  const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
 
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {
@@ -220,6 +230,8 @@ async function writeBlog({
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }
-  logWithTime(`모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`);
-  await browser.close();
+  logWithTime(
+    `[${category}]모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`
+  );
+  // await browser.close();
 })();

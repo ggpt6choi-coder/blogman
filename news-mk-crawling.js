@@ -4,17 +4,28 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const axios = require('axios');
 const { XMLParser } = require('fast-xml-parser');
+const { logWithTime } = require('./common');
+const { exec } = require('child_process');
 
-function logWithTime(msg, emoji = '') {
-  const now = new Date().toLocaleString('ko-KR', { hour12: false });
-  console.log(`${emoji} [${now}] ${msg}`);
-}
+// RSS 링크와 타입 매핑
+const typeMap = {
+  'https://www.mk.co.kr/rss/30100041/': 'economy',
+  'https://www.mk.co.kr/rss/50400012/': 'society',
+  'https://www.mk.co.kr/rss/50100032/': 'company',
+  'https://www.mk.co.kr/rss/30000023/': 'culture',
+  'https://www.mk.co.kr/rss/30200030/': 'politics',
+  'https://www.mk.co.kr/rss/30300018/': 'world',
+  'https://www.mk.co.kr/rss/50200011/': 'stock',
+  'https://www.mk.co.kr/rss/50300009/': 'estate',
+  'https://www.mk.co.kr/rss/71000001/': 'sports',
+  'https://www.mk.co.kr/rss/50700001/': 'game',
+};
 
 function isWithinLastHour(pubDateStr) {
   const pubDate = new Date(pubDateStr);
   const now = new Date();
   const diffMs = now.getTime() - pubDate.getTime();
-  return diffMs >= 0 && diffMs <= 6600000;
+  return diffMs >= 0 && diffMs <= 3600000;
 }
 
 async function fetchAndExtractXML(url) {
@@ -33,22 +44,24 @@ async function fetchAndExtractXML(url) {
     'https://www.mk.co.kr/rss/50400012/', // 사회
     'https://www.mk.co.kr/rss/50100032/', // 기업·경영
     'https://www.mk.co.kr/rss/30000023/', // 문화·연예
-    //  "https://www.mk.co.kr/rss/30200030/", // 정치
-    //  "https://www.mk.co.kr/rss/30300018/", // 국제
-    //  "https://www.mk.co.kr/rss/50200011/", // 증권
-    //  "https://www.mk.co.kr/rss/50300009/", // 부동산
-    //  "https://www.mk.co.kr/rss/71000001/", // 스포츠
-    //  "https://www.mk.co.kr/rss/50700001/", // 게임
+    'https://www.mk.co.kr/rss/30200030/', // 정치
+    'https://www.mk.co.kr/rss/30300018/', // 국제
+    'https://www.mk.co.kr/rss/50200011/', // 증권
+    'https://www.mk.co.kr/rss/50300009/', // 부동산
+    'https://www.mk.co.kr/rss/71000001/', // 스포츠
+    'https://www.mk.co.kr/rss/50700001/', // 게임
   ];
 
   const browser = await chromium.launch({ headless: true });
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-  const newsArr = [];
 
+  let typeLink = '';
   for (const link of links) {
+    const newsArr = [];
+    typeLink = link;
     const items = await fetchAndExtractXML(link);
-    logWithTime(`기사 ${items.length}건 수집됨`);
+    logWithTime(`[${typeMap[typeLink]}]기사 ${items.length}건 수집 시작`);
 
     for (const item of items) {
       const page = await browser.newPage();
@@ -81,6 +94,9 @@ async function fetchAndExtractXML(url) {
       } else {
         article = '[본문 없음]';
       }
+
+      // 본문 조회 못하면 진행하지마
+      if (article === '[본문 없음]') continue;
 
       let newTitle = '';
       if (title !== '[제목 없음]') {
@@ -127,6 +143,8 @@ async function fetchAndExtractXML(url) {
           const result = await model.generateContent(prompt);
           hashTag = result.response.text().trim().split(/\s+/);
           await new Promise((res) => setTimeout(res, 5000));
+          if (hashTag.includes('해시태그2') || hashTag.includes('알겠습니다.'))
+            hashTag = [];
         } catch (e) {
           hashTag = [];
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
@@ -159,9 +177,35 @@ async function fetchAndExtractXML(url) {
       }
 
       await page.close();
+      break;
+    }
+
+    // mk-data 디렉터리 없으면 자동 생성
+    const typeName = typeMap[typeLink] || 'unknown';
+    const dirPath = 'mk-data';
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+      logWithTime('mk-data 디렉터리 생성됨');
+    }
+    fs.writeFileSync(
+      `${dirPath}/mk-news-${typeName}.json`,
+      JSON.stringify(newsArr, null, 2),
+      'utf-8'
+    );
+    logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
+
+    // 크롤링 끝난 후 건수가 있으면 네이버 포스팅 자동화 실행
+    if (newsArr.length !== 0) {
+      exec(
+        `node naver-realtime-login.js ${typeName}`,
+        (err, stdout, stderr) => {
+          if (err) {
+            logWithTime('네이버 포스팅 자동화 실패:', err);
+          }
+        }
+      );
     }
   }
-  fs.writeFileSync('mk-news.json', JSON.stringify(newsArr, null, 2), 'utf-8');
-  logWithTime(`뉴스 데이터 저장 완료: ${newsArr.length}`);
+
   await browser.close();
 })();

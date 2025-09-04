@@ -57,8 +57,8 @@ async function fetchAndExtractXML(url) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   let typeLink = '';
+  const newsArr = [];
   for (const link of links) {
-    const newsArr = [];
     typeLink = link;
     const items = await fetchAndExtractXML(link);
     logWithTime(`[${typeMap[typeLink]}]기사 ${items.length}건 수집 시작`);
@@ -181,31 +181,44 @@ async function fetchAndExtractXML(url) {
     }
 
     // mk-data 디렉터리 없으면 자동 생성
-    const typeName = typeMap[typeLink] || 'unknown';
-    const dirPath = 'mk-data';
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-      logWithTime('mk-data 디렉터리 생성됨');
-    }
-    fs.writeFileSync(
-      `${dirPath}/mk-news-${typeName}.json`,
-      JSON.stringify(newsArr, null, 2),
-      'utf-8'
-    );
-    logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
+    // const typeName = typeMap[typeLink] || 'unknown';
+    // const dirPath = 'mk-data';
+    // if (!fs.existsSync(dirPath)) {
+    //   fs.mkdirSync(dirPath, { recursive: true });
+    //   logWithTime('mk-data 디렉터리 생성됨');
+    // }
+    // fs.writeFileSync(
+    //   `${dirPath}/mk-news-${typeName}.json`,
+    //   JSON.stringify(newsArr, null, 2),
+    //   'utf-8'
+    // );
+    // logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
 
     // 크롤링 끝난 후 건수가 있으면 네이버 포스팅 자동화 실행
-    if (newsArr.length !== 0) {
-      exec(
-        `node naver-realtime-login.js ${typeName}`,
-        (err, stdout, stderr) => {
-          if (err) {
-            logWithTime('네이버 포스팅 자동화 실패:', err);
-          }
-        }
-      );
-    }
+    // if (newsArr.length !== 0) {
+    //   exec(
+    //     `node naver-realtime-login.js ${typeName}`,
+    //     (err, stdout, stderr) => {
+    //       if (err) {
+    //         logWithTime('네이버 포스팅 자동화 실패:', err);
+    //       }
+    //     }
+    //   );
+    // }
   }
+
+  const typeName = typeMap[typeLink] || 'unknown';
+  const dirPath = 'mk-data';
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+    logWithTime('mk-data 디렉터리 생성됨');
+  }
+  fs.writeFileSync(
+    `${dirPath}/mk-news.json`,
+    JSON.stringify(newsArr, null, 2),
+    'utf-8'
+  );
+  logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
 
   await browser.close();
 })();

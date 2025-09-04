@@ -199,7 +199,8 @@ async function writeBlog({
 
   // 카테고리명 인자 받아서 해당 JSON 파일 읽기
   const category = process.argv[2] || 'economy';
-  const fileName = `./mk-data/mk-news-${category}.json`;
+  // const fileName = `./mk-data/mk-news-${category}.json`;
+  const fileName = `./mk-data/mk-news.json`;
   const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
 
   let errCount = 0;

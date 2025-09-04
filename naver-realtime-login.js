@@ -172,8 +172,8 @@ async function writeBlog({
   );
 
   // 발행버튼 클릭
-  // await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
-  // await frame.click('.confirm_btn__WEaBq');
+  await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
+  await frame.click('.confirm_btn__WEaBq');
 }
 
 // ==========================

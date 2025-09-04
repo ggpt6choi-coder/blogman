@@ -226,7 +226,7 @@ async function writeBlog({
         news.title
       }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
-      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
+      fs.appendFileSync('naver-realtime-upload-error.log', errorLog, 'utf-8');
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }

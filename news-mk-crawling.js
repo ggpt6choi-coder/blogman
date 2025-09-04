@@ -112,7 +112,7 @@ async function fetchAndExtractXML(url) {
           const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('gemini-mk-error.log', errorLog, 'utf-8');
         }
       } else {
         newTitle = '[제목 없음]';
@@ -130,7 +130,7 @@ async function fetchAndExtractXML(url) {
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('gemini-mk-error.log', errorLog, 'utf-8');
         }
       } else {
         newArticle = '[본문 없음]';
@@ -150,7 +150,7 @@ async function fetchAndExtractXML(url) {
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('gemini-mk-error.log', errorLog, 'utf-8');
         }
       }
 

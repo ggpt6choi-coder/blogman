@@ -36,5 +36,6 @@ __pycache__/
 
 #log, data file
 news.json
+mk-news.json
 .gemini-error.log
 .naver-upload-error.log

@@ -199,8 +199,8 @@ async function writeBlog({
 
   // 카테고리명 인자 받아서 해당 JSON 파일 읽기
   const category = process.argv[2] || 'economy';
-  // const fileName = `./mk-data/mk-news-${category}.json`;
-  const fileName = `./mk-data/mk-news.json`;
+  // const fileName = `./data/mk-news-${category}.json`;
+  const fileName = `./data/mk-news.json`;
   const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
 
   let errCount = 0;
@@ -227,7 +227,11 @@ async function writeBlog({
         news.title
       }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
-      fs.appendFileSync('naver-realtime-upload-error.log', errorLog, 'utf-8');
+      fs.appendFileSync(
+        'error-log/naver-realtime-upload-error.log',
+        errorLog,
+        'utf-8'
+      );
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }

@@ -194,7 +194,7 @@ async function writeBlog({
   logWithTime('로그인 완료');
   // news.json에서 데이터 읽기
   const fs = require('fs');
-  const newsList = JSON.parse(fs.readFileSync('./news.json', 'utf-8'));
+  const newsList = JSON.parse(fs.readFileSync('./data/news.json', 'utf-8'));
 
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {
@@ -205,7 +205,7 @@ async function writeBlog({
     if (false && news.newArticle.length > 2201) {
       const errorLog = `스킵(${i}, ${news.newArticle.length}자) : ${news.title})`;
       logWithTime(errorLog, '🥲');
-      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
+      fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
       continue;
     }
 
@@ -227,7 +227,7 @@ async function writeBlog({
         news.title
       }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
-      fs.appendFileSync('naver-upload-error.log', errorLog, 'utf-8');
+      fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }

@@ -1,4 +1,7 @@
 mk-data/
+data/
+error-log/
+
 # Node
 node_modules/
 npm-debug.log

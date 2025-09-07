@@ -91,7 +91,7 @@ const { log } = require('console');
           const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
         }
       } else {
         newTitle = '[제목 없음]';
@@ -123,7 +123,7 @@ const { log } = require('console');
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
         }
       } else {
         newArticle = '[본문 없음]';
@@ -157,7 +157,7 @@ const { log } = require('console');
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
             e && e.stack ? e.stack : e
           }\n`;
-          fs.appendFileSync('gemini-error.log', errorLog, 'utf-8');
+          fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
         }
       }
       // 모든 결과 저장 (실패/빈 값 포함)
@@ -183,7 +183,17 @@ const { log } = require('console');
     }
     await page.close();
   }
-  fs.writeFileSync('news.json', JSON.stringify(newsArr, null, 2), 'utf-8');
+  // data 디렉터리 없으면 자동 생성
+  const dirPath = 'data';
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+    logWithTime('data 디렉터리 생성됨');
+  }
+  fs.writeFileSync(
+    `${dirPath}/news.json`,
+    JSON.stringify(newsArr, null, 2),
+    'utf-8'
+  );
   logWithTime(`뉴스 데이터 저장 완료: ${newsArr.length}`);
   await browser.close();
 })();

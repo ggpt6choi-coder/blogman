@@ -198,7 +198,7 @@ async function writeBlog({
   logWithTime('로그인 완료');
 
   // 카테고리명 인자 받아서 해당 JSON 파일 읽기
-  const category = process.argv[2] || 'economy';
+  // const category = process.argv[2] || 'economy';
   // const fileName = `./data/mk-news-${category}.json`;
   const fileName = `./data/mk-news.json`;
   const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
@@ -236,7 +236,8 @@ async function writeBlog({
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }
   logWithTime(
-    `[${category}]모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`
+    // `[${category}]모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`
+    `[모든 글 작성 완료 (실패건수: ${errCount} / ${newsList.length})`
   );
-  // await browser.close();
+  await browser.close();
 })();

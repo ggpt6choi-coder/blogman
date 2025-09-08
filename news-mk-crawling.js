@@ -143,8 +143,13 @@ async function fetchAndExtractXML(url) {
           const result = await model.generateContent(prompt);
           hashTag = result.response.text().trim().split(/\s+/);
           await new Promise((res) => setTimeout(res, 5000));
-          if (hashTag.includes('해시태그2') || hashTag.includes('알겠습니다.'))
+          if (
+            hashTag.includes('본문') ||
+            hashTag.includes('#해시태그2') ||
+            hashTag.includes('드리겠습니다.')
+          ) {
             hashTag = [];
+          }
         } catch (e) {
           hashTag = [];
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${

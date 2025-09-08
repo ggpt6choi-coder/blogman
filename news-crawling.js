@@ -150,6 +150,13 @@ const { log } = require('console');
           hashTag = result.response.text().trim().split(/\s+/);
           // Gemini API 호출 후 2초 대기
           await new Promise((res) => setTimeout(res, 2000));
+          if (
+            hashTag.includes('본문') ||
+            hashTag.includes('#해시태그2') ||
+            hashTag.includes('드리겠습니다.')
+          ) {
+            hashTag = [];
+          }
         } catch (e) {
           hashTag = [];
           console.log(`hashTag = '[생성 실패]'`);

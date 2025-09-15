@@ -99,7 +99,7 @@ const { log } = require('console');
       }
       // Gemini API로 본문 재가공 및 해시태그 생성
       let newArticle = '';
-      if (article !== '[본문 없음]' && article.length.trim() !== 0) {
+      if (article !== '[본문 없음]' && article.length !== 0) {
         try {
           const prompt = `다음 뉴스 본문을 네이버 블로그 검색 엔진에 최적화된 본문으로 재가공해줘. 조건은 아래와 같아.\n\n
             - 기사 내용과 직접 관련 없는 광고, 무관한 뉴스, 스크립트 코드는 모두 제거해줘.\n\n
@@ -140,7 +140,7 @@ const { log } = require('console');
       }
       // 해시태그 생성
       let hashTag = '';
-      if (article !== '[본문 없음]' && article.length.trim() !== 0) {
+      if (article !== '[본문 없음]' && article.length !== 0) {
         try {
           const prompt = `다음 뉴스 본문을 기반으로 네이버 검색 알고리즘에 최적화된 해시태그 5개이상 10개미만 만들어줘.\n\n
             - '#해시태그1 #해시태그2 #해시태그3' 형태로 만들어줘.\n\n

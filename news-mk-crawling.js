@@ -119,7 +119,7 @@ async function fetchAndExtractXML(url) {
       }
 
       let newArticle = '';
-      if (article !== '[본문 없음]' && article.length.trim() !== 0) {
+      if (article !== '[본문 없음]' && article.length !== 0) {
         try {
           const prompt = `다음 뉴스 본문을 네이버 블로그 검색 엔진에 최적화된 본문으로 재가공해줘. 조건은 아래와 같아.\n\n- 기사 내용과 직접 관련 없는 광고, 무관한 뉴스, 스크립트 코드는 모두 제거해줘.\n\n- 불필요한 반복, 기자 서명, 매체명은 삭제하고 핵심 정보만 남겨줘.\n\n- 단어나 문장을 다른 말로 바꿀 때는 positive 단어와 negative 단어를 서로 치환하지 말아줘.\n\n- 문장은 블로그 독자가 읽기 편하도록 자연스럽게 요약·재구성해줘.\n\n- 중립적이면서도 맥락을 이해할 수 있는 해설을 곁들여줘.\n\n- 글자 수는 띄어쓰기 포함하여 1000자 이상 2000자 미만으로 맞춰줘.\n\n- 소제목(h2, h3)을 달아 가독성을 높이고, 소제목 단위로 문단을 나눠서 작성해줘. 소제목 앞에는 "✅" 기호를 붙여줘. 그리고 작성시에 '#', '**' 같은 마크다운 표시는 사용하지 말아줘.\n\n- 맨 처음에는 너의 중립적인 생각을 짧게 말해주고, 한 문단 띄운 뒤 "무슨 내용인지 보러 가시죠!"와 같은 느낌의 문장을 넣어줘.\n\n- 답변은 불필요한 설명 없이 바로 전체 복사해 블로그에 쓸 수 있는 형태로 작성해줘.\n\n- 원본: ${article}\n\n변경:`;
           const result = await model.generateContent(prompt);
@@ -137,7 +137,7 @@ async function fetchAndExtractXML(url) {
       }
 
       let hashTag = '';
-      if (article !== '[본문 없음]' && article.length.trim() !== 0) {
+      if (article !== '[본문 없음]' && article.length !== 0) {
         try {
           const prompt = `다음 뉴스 본문을 기반으로 네이버 검색 알고리즘에 최적화된 해시태그 5개이상 10개미만 만들어줘.\n\n- '#해시태그1 #해시태그2 #해시태그3' 형태로 만들어줘.\n\n- 답변은 내가 요청한 형태로만 대답해줘. 바로 복사해서 사용할꺼니까\n\n기사: ${article}\n\n:`;
           const result = await model.generateContent(prompt);

@@ -2,6 +2,7 @@ import axios from 'axios';
 import moment from 'moment';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import { chromium } from 'playwright';
 dotenv.config();
 
@@ -270,6 +271,25 @@ const uploadToTistory = async (html) => {
 
   await browser.close();
   logWithTime('글 작성 완료', '🎉');
+
+  // tistory 글 파라미터 관리용
+  // deeev-choi.tistory.com/${count}
+  const countFile = 'coupang.count.json';
+  let count = 0;
+
+  // 파일이 이미 있으면 기존 값 읽기
+  if (fs.existsSync(countFile)) {
+    const data = fs.readFileSync(countFile, 'utf-8');
+    try {
+      count = JSON.parse(data).count || 0;
+    } catch (e) {
+      count = 0;
+    }
+  }
+
+  // count 증가 후 파일에 저장
+  count += 1;
+  fs.writeFileSync(countFile, JSON.stringify({ count }), 'utf-8');
 };
 
 // 메인함수 실행

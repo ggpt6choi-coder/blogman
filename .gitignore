@@ -1,6 +1,7 @@
 mk-data/
 data/
 error-log/
+coupang.count.json
 
 # Node
 node_modules/

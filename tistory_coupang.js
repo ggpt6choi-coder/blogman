@@ -4,6 +4,8 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import { chromium } from 'playwright';
+import { logWithTime } from './common';
+
 dotenv.config();
 
 const ACCESS_KEY = process.env.ACCESS_KEY;

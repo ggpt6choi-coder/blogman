@@ -6,9 +6,8 @@ const { logWithTime } = require('./common');
 
 (async () => {
     const browser = await chromium.launch({ headless: true });
-    // const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
-    // const scList = ['sisa', 'spo', 'ent'];
-    const scList = ['sisa'];
+    const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
+    // const scList = ['sisa'];
     const newsArr = [];
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });

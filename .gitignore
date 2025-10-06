@@ -1,5 +1,4 @@
 mk-data/
-data/
 error-log/
 coupang.count.json
 
@@ -40,7 +39,6 @@ __pycache__/
 .firebase/
 
 #log, data file
-news.json
 mk-news.json
 .gemini-error.log
 .naver-upload-error.log

@@ -1,9 +1,9 @@
 name: Blog Auto Batch
 
 on:
+  schedule:
+    - cron: '50 21 * * *' # 한국시간 오전 6:50에 해당 (21:50 UTC 전날)
   workflow_dispatch:
-  # schedule:
-  # - cron: '0 21 * * *' # 매일 0시 실행 (원하는 주기로 수정)
 
 jobs:
   run-batch:
@@ -33,9 +33,6 @@ jobs:
       - name: Run news-crawling.js
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          BLOG_NAME: ${{ secrets.BLOG_NAME }}
-          NAVER_ID: ${{ secrets.NAVER_ID }}
-          NAVER_PW: ${{ secrets.NAVER_PW }}
         run: node news-crawling.js
 
       - name: Upload error screenshots (if any)

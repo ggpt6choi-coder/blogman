@@ -61,7 +61,7 @@ async function writeBlog({
   await frame.waitForTimeout(300);
   await frame.type(titleParagraphSelector, title, { delay: 80 });
 
-  // 본문 입력 처리
+  // 본문 입력 처리 (content: string 또는 배열 모두 지원)
   const contentParagraphSelector =
     'div.se-component.se-text .se-component-content p.se-text-paragraph';
   const contentSpanSelector =
@@ -69,31 +69,47 @@ async function writeBlog({
   await frame.waitForSelector(contentParagraphSelector, { timeout: 5000 });
   await frame.click(contentParagraphSelector, { clickCount: 1, delay: 100 });
   await frame.waitForTimeout(200);
-  await frame.type(contentSpanSelector, title, { delay: 50 });
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
 
-  // 본문 길면 오류나는거 방지 차원에서 본문 반틈 나눠서 작성
-  const half = Math.floor(content.length / 2);
-  const firstHalf = content.slice(0, half);
-  const secondHalf = content.slice(half);
+  // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
+  await frame.type(contentSpanSelector, title, { delay: 40 });
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
 
-  await frame.type(contentSpanSelector, firstHalf, { delay: 10 });
-  // await page.keyboard.press('Enter');
-  await frame.waitForTimeout(200);
-  await frame.type(contentSpanSelector, secondHalf, { delay: 10 });
-
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  if (Array.isArray(content)) {
+    for (const section of content) {
+      if (section.title) {
+        await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
+        await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
+        await frame.type(contentSpanSelector, section.title, { delay: 40 });
+        await frame.click('div.se-canvas-bottom.se-is-clickable-canvas-bottom-button > button', { clickCount: 1, delay: 100 });
+        await frame.waitForTimeout(100);
+      }
+      if (section.content) {
+        await frame.type(contentSpanSelector, section.content, { delay: 10 });
+        await page.keyboard.press('Enter');
+        await frame.waitForTimeout(200);
+      }
+      // 소제목/내용 사이 구분을 위해 한 줄 띄움
+      await page.keyboard.press('Enter');
+      await frame.waitForTimeout(100);
+    }
+  } else if (typeof content === 'string') {
+    // 기존 string 방식 하위 호환
+    const half = Math.floor(content.length / 2);
+    const firstHalf = content.slice(0, half);
+    const secondHalf = content.slice(half);
+    await frame.type(contentSpanSelector, firstHalf, { delay: 10 });
+    await frame.waitForTimeout(200);
+    await frame.type(contentSpanSelector, secondHalf, { delay: 10 });
+    await page.keyboard.press('Enter');
+    await frame.waitForTimeout(300);
+    await page.keyboard.press('Enter');
+    await frame.waitForTimeout(300);
+    await page.keyboard.press('Enter');
+    await frame.waitForTimeout(300);
+    await page.keyboard.press('Enter');
+    await frame.waitForTimeout(300);
+  }
 
   await frame.type(
     contentSpanSelector,
@@ -199,15 +215,8 @@ async function writeBlog({
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {
     const news = newsList[i];
-    if (news.newTitle === '[변환 실패]' || news.newArticle === '[변환 실패]')
+    if (news.newTitle == null || news.newArticle == null || news.newArticle.length == 0 || news.newTitle === '[변환 실패]' || news.newArticle === '[변환 실패]')
       continue;
-
-    if (false && news.newArticle.length > 2201) {
-      const errorLog = `스킵(${i}, ${news.newArticle.length}자) : ${news.title})`;
-      logWithTime(errorLog, '🥲');
-      fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
-      continue;
-    }
 
     const blogData = {
       page,
@@ -223,9 +232,8 @@ async function writeBlog({
       await writeBlog(blogData);
     } catch (err) {
       errCount++;
-      const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${
-        news.title
-      }\nError: ${err && err.stack ? err.stack : err}\n`;
+      const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${news.title
+        }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
       fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
     }

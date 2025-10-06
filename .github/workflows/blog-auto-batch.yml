@@ -12,7 +12,8 @@ jobs:
       TZ: Asia/Seoul
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Cache Node modules
         uses: actions/cache@v3
@@ -49,6 +50,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+      # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,3 +60,18 @@ jobs:
             crawl_log.txt
             data/**
             mainFrame_not_found_*.png
+
+      # data 폴더를 리포지토리에 커밋 & 푸시
+      - name: Commit data to repository
+        if: always()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/**
+          # 변경사항이 있을 때만 커밋
+          if ! git diff --cached --quiet; then
+            git commit -m "자동 업데이트 news data"
+            git push
+          else
+            echo "No changes to commit"
+          fi

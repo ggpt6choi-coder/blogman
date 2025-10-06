@@ -56,4 +56,5 @@ jobs:
           name: crawl-artifacts
           path: |
             crawl_log.txt
+            data/**
             mainFrame_not_found_*.png

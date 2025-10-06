@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -50,7 +48,7 @@ jobs:
         run: node news-crawling.js > crawl_log.txt 2>&1
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()
@@ -65,14 +63,16 @@ jobs:
       # data 폴더를 리포지토리에 커밋 & 푸시
       - name: Commit data to repository
         if: always()
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f data/**
-          # 변경사항이 있을 때만 커밋
           if ! git diff --cached --quiet; then
             git commit -m "자동 업데이트 news data"
-            git push
+            git push https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
           else
             echo "No changes to commit"
           fi
+

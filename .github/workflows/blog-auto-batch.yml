@@ -5,6 +5,9 @@ on:
     - cron: '50 21 * * *' # 한국시간 오전 6:50 (UTC 21:50 전날)
   workflow_dispatch:
 
+permissions:
+  contents: write  # ← 이 한 줄이 핵심!
+  
 jobs:
   run-batch:
     runs-on: ubuntu-latest

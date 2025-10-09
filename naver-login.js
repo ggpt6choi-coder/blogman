@@ -261,7 +261,7 @@ async function writeBlog({
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)
   }
   logWithTime(
-    `모든 글 작성 완료 (실패 건수: ${errCount} / ${newsList.length})`
+    `🍀모든 글 작성 완료 (실패 건수: ${errCount} / ${newsList.length})`
   );
   await browser.close();
 })();

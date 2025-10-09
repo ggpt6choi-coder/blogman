@@ -109,9 +109,8 @@ async function fetchAndExtractXML(url) {
           await new Promise((res) => setTimeout(res, 5000));
         } catch (e) {
           newTitle = '[변환 실패]';
-          const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${
-            e && e.stack ? e.stack : e
-          }\n`;
+          const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e
+            }\n`;
           fs.appendFileSync('error-log/gemini-mk-error.log', errorLog, 'utf-8');
         }
       } else {
@@ -121,19 +120,52 @@ async function fetchAndExtractXML(url) {
       let newArticle = '';
       if (article !== '[본문 없음]' && article.length !== 0) {
         try {
-          const prompt = `다음 뉴스 본문을 네이버 블로그 검색 엔진에 최적화된 본문으로 재가공해줘. 조건은 아래와 같아.\n\n- 기사 내용과 직접 관련 없는 광고, 무관한 뉴스, 스크립트 코드는 모두 제거해줘.\n\n- 불필요한 반복, 기자 서명, 매체명은 삭제하고 핵심 정보만 남겨줘.\n\n- 단어나 문장을 다른 말로 바꿀 때는 positive 단어와 negative 단어를 서로 치환하지 말아줘.\n\n- 문장은 블로그 독자가 읽기 편하도록 자연스럽게 요약·재구성해줘.\n\n- 중립적이면서도 맥락을 이해할 수 있는 해설을 곁들여줘.\n\n- 글자 수는 띄어쓰기 포함하여 1000자 이상 2000자 미만으로 맞춰줘.\n\n- 소제목(h2, h3)을 달아 가독성을 높이고, 소제목 단위로 문단을 나눠서 작성해줘. 소제목 앞에는 "✅" 기호를 붙여줘. 그리고 작성시에 '#', '**' 같은 마크다운 표시는 사용하지 말아줘.\n\n- 맨 처음에는 너의 중립적인 생각을 짧게 말해주고, 한 문단 띄운 뒤 "무슨 내용인지 보러 가시죠!"와 같은 느낌의 문장을 넣어줘.\n\n- 답변은 불필요한 설명 없이 바로 전체 복사해 블로그에 쓸 수 있는 형태로 작성해줘.\n\n- 원본: ${article}\n\n변경:`;
+          const prompt = `다음 뉴스 본문을 기반으로 네이버 블로그 검색 엔진에 최적화된 글을 작성해줘.\n
+                          결과는 아래의 JSON 배열 형태로 만들어줘.\n
+                          [
+                          {"title": "소제목1", "content": "내용1"},
+                          {"title": "소제목2", "content": "내용2"},
+                          ...
+                          ]
+                          \n
+                          작성 조건:
+                          - 기사 내용을 핵심 주제별로 4~7개의 문단으로 나누어 구성할 것\n
+                          - 각 소제목(title)은 핵심 키워드를 포함해 10자 이내로 작성 (예: ‘미국 금리 전망’, ‘테슬라 주가 급등’)\n
+                          - 각 내용(content)은 300~700자 사이의 자연스러운 하나의 문단으로 작성 (줄바꿈, 리스트, 특수문자, 마크업 금지)\n
+                          - 전체 글 분량은 약 1500자 이상이 되도록 구성\n
+                          - 마지막 문단의 title은 반드시 '개인적인 생각'으로 하고, 기사 내용에 대한 견해와 시사점을 분석적으로 작성\n
+                          - 모든 문장은 자연스럽게 연결되도록 하되, SEO(검색 최적화)를 위해 핵심 키워드가 문장 내에 자연스럽게 반복되게 작성\n
+                          - 기사와 관련 없는 광고, 스크립트, 기자 서명, 매체명, 불필요한 문장은 모두 제거\n
+                          - title은 소제목으로만, content에는 포함하지 말 것\n
+                          - 답변은 반드시 위 JSON 배열 형식으로만 출력. 다른 설명이나 불필요한 텍스트는 절대 넣지 마\n
+                          원본: ${article}
+                          `;
+
           const result = await model.generateContent(prompt);
-          newArticle = result.response.text().trim();
-          await new Promise((res) => setTimeout(res, 5000));
+          const raw = result.response.text().trim();
+          try {
+            newArticle = JSON.parse(raw);
+          } catch (jsonErr) {
+            const match = raw.match(/\[.*\]/s);
+            if (match) {
+              newArticle = JSON.parse(match[0]);
+            } else {
+              newArticle = '[변환 실패]';
+            }
+          }
+          await new Promise((res) => setTimeout(res, 2000));
         } catch (e) {
           newArticle = '[변환 실패]';
-          const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
-            e && e.stack ? e.stack : e
-          }\n`;
+          console.log(`newArticle = '[변환 실패]'`);
+          const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
+          if (!fs.existsSync('error-log')) {
+            fs.mkdirSync('error-log', { recursive: true });
+          }
           fs.appendFileSync('error-log/gemini-mk-error.log', errorLog, 'utf-8');
         }
       } else {
         newArticle = '[본문 없음]';
+        console.log(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
       }
 
       let hashTag = '';
@@ -154,9 +186,8 @@ async function fetchAndExtractXML(url) {
           }
         } catch (e) {
           hashTag = [];
-          const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${
-            e && e.stack ? e.stack : e
-          }\n`;
+          const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e
+            }\n`;
           fs.appendFileSync('error-log/gemini-mk-error.log', errorLog, 'utf-8');
         }
       }
@@ -172,8 +203,8 @@ async function fetchAndExtractXML(url) {
             item.category === '기업/경영'
               ? '기업'
               : item.category === '문화/연예'
-              ? '문화'
-              : item.category,
+                ? '문화'
+                : item.category,
           title: item.title,
           newTitle,
           article,
@@ -184,34 +215,7 @@ async function fetchAndExtractXML(url) {
       }
 
       await page.close();
-      break;
     }
-
-    // data 디렉터리 없으면 자동 생성
-    // const typeName = typeMap[typeLink] || 'unknown';
-    // const dirPath = 'data';
-    // if (!fs.existsSync(dirPath)) {
-    //   fs.mkdirSync(dirPath, { recursive: true });
-    //   logWithTime('data 디렉터리 생성됨');
-    // }
-    // fs.writeFileSync(
-    //   `${dirPath}/mk-news-${typeName}.json`,
-    //   JSON.stringify(newsArr, null, 2),
-    //   'utf-8'
-    // );
-    // logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
-
-    // 크롤링 끝난 후 건수가 있으면 네이버 포스팅 자동화 실행
-    // if (newsArr.length !== 0) {
-    //   exec(
-    //     `node naver-realtime-login.js ${typeName}`,
-    //     (err, stdout, stderr) => {
-    //       if (err) {
-    //         logWithTime('네이버 포스팅 자동화 실패:', err);
-    //       }
-    //     }
-    //   );
-    // }
   }
 
   const typeName = typeMap[typeLink] || 'unknown';
@@ -222,10 +226,10 @@ async function fetchAndExtractXML(url) {
   }
   fs.writeFileSync(
     `${dirPath}/mk-news.json`,
-    JSON.stringify(newsArr, null, 2),
+    JSON.stringify(newsArr.slice(0, 10), null, 2),
     'utf-8'
   );
-  logWithTime(`[${typeName}]뉴스 데이터 저장 완료: ${newsArr.length}`);
+  logWithTime(`뉴스 데이터 저장 완료: ${newsArr.slice(0, 10).length}`);
 
   await browser.close();
 })();

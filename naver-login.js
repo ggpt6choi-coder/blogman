@@ -114,18 +114,18 @@ async function writeBlog({
     await frame.waitForTimeout(300);
   }
 
-  await frame.type(
-    contentSpanSelector,
-    `아래 기사를 참고하여 정리 한 개인적인 생각입니다.`,
-    { delay: 80 }
-  );
-  await page.keyboard.press('Enter');
-  await frame.type(contentSpanSelector, url, { delay: 80 });
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(5000);
+  // await frame.type(
+  //   contentSpanSelector,
+  //   `아래 기사를 참고하여 정리 한 개인적인 생각입니다.`,
+  //   { delay: 80 }
+  // );
+  // await page.keyboard.press('Enter');
+  // await frame.type(contentSpanSelector, url, { delay: 80 });
+  // await page.waitForTimeout(300);
+  // await page.keyboard.press('Enter');
+  // await page.waitForTimeout(300);
+  // await page.keyboard.press('Enter');
+  // await page.waitForTimeout(5000);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   await page.keyboard.press('Enter');

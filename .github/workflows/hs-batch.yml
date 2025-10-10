@@ -59,7 +59,7 @@ jobs:
       - name: Run it-news-crawling.js
         run: node it-news-crawling.js > it_crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_HS }}
+          GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts

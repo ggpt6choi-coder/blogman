@@ -11,7 +11,7 @@ const { logWithTime } = require('./common');
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
     logWithTime('크롤링 시작', '⏰');
-    const browser = await chromium.launch({ headless: false });
+    const browser = await chromium.launch({ headless: true });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 

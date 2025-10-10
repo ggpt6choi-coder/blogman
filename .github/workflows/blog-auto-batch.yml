@@ -1,4 +1,4 @@
-name: Blog Auto Batch
+name: Nate News Crawling
 
 on:
   schedule:

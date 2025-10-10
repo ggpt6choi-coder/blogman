@@ -1,4 +1,4 @@
-name: Blog Auto Batch
+name: HS Crawling
 
 on:
   schedule:

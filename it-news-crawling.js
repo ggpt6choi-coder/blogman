@@ -11,7 +11,7 @@ const { logWithTime } = require('./common');
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
     logWithTime('크롤링 시작', '⏰');
-    const browser = await chromium.launch({ headless: false });
+    const browser = await chromium.launch({ headless: true });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
@@ -278,8 +278,32 @@ const { logWithTime } = require('./common');
         }
 
     }
-    // test.json 파일로 저장
-    fs.writeFileSync('./data/hs-1.json', JSON.stringify(results, null, 2), 'utf-8');
+
+    // 🔵파일로 저장
+    const dirPath = 'data';
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        logWithTime('data 디렉터리 생성됨');
+    }
+    fs.writeFileSync(`${dirPath}/hs-1.json`, JSON.stringify(results, null, 2), 'utf-8');
+
+    const nowTime = new Date();
+    const utc = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
+    const kst = new Date(utc + 9 * 60 * 60000);
+    // KST 기준 시각을 구성
+    const year = kst.getFullYear();
+    const month = String(kst.getMonth() + 1).padStart(2, "0");
+    const day = String(kst.getDate()).padStart(2, "0");
+    const hours = String(kst.getHours()).padStart(2, "0");
+    const minutes = String(kst.getMinutes()).padStart(2, "0");
+    const seconds = String(kst.getSeconds()).padStart(2, "0");
+
+    fs.writeFileSync(
+        `${dirPath}/time_check_hs.json`,
+        JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
+        'utf-8'
+    );
+
     console.log(`크롤링된 IT 뉴스 기사 수: ${count}`);
     await browser.close();
 })();

@@ -185,16 +185,16 @@ async function writeBlog({
 // ==========================
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  // const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/time_check.json';
-  // const timeRes = await _fetch(TIME_CHECK_URL);
-  // const timeData = await timeRes.json();
-  // const createdTime = new Date(timeData.created);
-  // const now = new Date();
-  // const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  // if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-  //   console.log('실행 조건 불만족: time_check.json의 created 값이 2시간 이내가 아닙니다.');
-  //   process.exit(0);
-  // }
+  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/time_check_hs.json';
+  const timeRes = await _fetch(TIME_CHECK_URL);
+  const timeData = await timeRes.json();
+  const createdTime = new Date(timeData.created);
+  const now = new Date();
+  const twoHoursAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+    console.log('실행 조건 불만족: time_check_hs.json의 created 값이 1시간 이내가 아닙니다.');
+    process.exit(0);
+  }
 
   //시작
   const browser = await chromium.launch({

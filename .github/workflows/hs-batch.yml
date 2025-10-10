@@ -1,0 +1,91 @@
+name: Blog Auto Batch
+
+on:
+  schedule:
+    - cron: '00 1 * * *'
+    - cron: '00 2 * * *' 
+    - cron: '00 3 * * *' 
+    - cron: '00 4 * * *' 
+    - cron: '00 5 * * *' 
+    - cron: '00 6 * * *' 
+    - cron: '00 7 * * *' # 한국시간 오후 4:00 (UTC 07:00)
+    - cron: '00 8 * * *' 
+    - cron: '00 9 * * *' 
+    
+  workflow_dispatch:
+
+permissions:
+  contents: write  # ← 이 한 줄이 핵심!
+  
+jobs:
+  run-batch:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers (only if missing)
+        run: |
+          if [ ! -d ~/.cache/ms-playwright ]; then
+            npx playwright install --with-deps
+          fi
+
+      - name: Run it-news-crawling.js
+        run: node it-news-crawling.js > it_crawl_log.txt 2>&1
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_HS }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      # 데이터 파일과 로그 아티팩트 업로드
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-artifacts
+          path: |
+            it_crawl_log.txt
+            crawl_log.txt
+            data/**
+            mainFrame_not_found_*.png
+
+      # data 폴더를 리포지토리에 커밋 & 푸시
+      - name: Commit data to repository
+        if: always()
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/**
+          if ! git diff --cached --quiet; then
+            git commit -m "자동 업데이트 news data"
+            git push https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
+          else
+            echo "No changes to commit"
+          fi
+

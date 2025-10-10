@@ -11,7 +11,7 @@ const { logWithTime } = require('./common');
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
     logWithTime('크롤링 시작', '⏰');
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: false });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
@@ -156,7 +156,9 @@ const { logWithTime } = require('./common');
                 } catch (e) {
                     newTitle = '[변환 실패]';
                     console.log(`newTitle = '[변환 실패]'`);
-                    const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
+                    console.error('Gemini newTitle 변환 실패:', e);
+                    console.error('환경변수 GEMINI_API_KEY_HS:', process.env.GEMINI_API_KEY_HS);
+                    const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\nGEMINI_API_KEY_HS: ${process.env.GEMINI_API_KEY_HS}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
                     }
@@ -208,7 +210,9 @@ const { logWithTime } = require('./common');
                 } catch (e) {
                     newArticle = '[변환 실패]';
                     console.log(`newArticle = '[변환 실패]'`);
-                    const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
+                    console.error('Gemini newArticle 변환 실패:', e);
+                    console.error('환경변수 GEMINI_API_KEY_HS:', process.env.GEMINI_API_KEY_HS);
+                    const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\nGEMINI_API_KEY_HS: ${process.env.GEMINI_API_KEY_HS}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
                     }

@@ -76,7 +76,7 @@ jobs:
           git add -f data/**
           if ! git diff --cached --quiet; then
             git commit -m "자동 업데이트 news data"
-            git push https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
+            git push -f https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
           else
             echo "No changes to commit"
           fi

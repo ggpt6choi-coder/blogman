@@ -76,8 +76,6 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
-  await frame.type(contentSpanSelector, title, { delay: 40 });
-  await page.keyboard.press('Enter');
 
   await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');

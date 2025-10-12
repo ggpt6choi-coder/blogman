@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 const fs = require('fs');
-const { logWithTime, getKstIsoNow } = require('./common');
+const { logWithTime, getKstIsoNow, isWithinLastHour } = require('./common');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 (async () => {
@@ -15,52 +15,40 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
     const browser = await chromium.launch({ headless: !SHOW_BROWSER });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-    // 이전에 수집한 링크 관리 객체 로드
-    let manage = null;
-    if (fs.existsSync('data/daum_entertainment_manage.json')) {
-        manage = JSON.parse(fs.readFileSync('data/daum_entertainment_manage.json', 'utf-8'));
-    }
-
-    // manage가 없으면 기본 구조로 초기화
-    if (!manage) {
-        manage = {
-            date: getKstIsoNow(),
-            count: 0,
-            links: []
-        };
-    }
 
     //////////////////////////////////////////////////////////////////////////
     //🌟🌟🌟🌟🌟 1번째 사이트 크롤링
     const page = await browser.newPage();
-    // 1. 뉴스 리스트 추출-01
+    // 뉴스 리스트 추출-01
     await page.goto("https://entertain.daum.net/ranking/popular");
     await page.waitForSelector('ol.list_ranking');
     const newsPosts = await page.$$eval(
         'ol.list_ranking a.link_thumb',
         els => Array.from(new Set(els.map(e => e.href))) // 중복 제거
     );
-
-    // 1. 뉴스 리스트 추출-02
+    // 뉴스 리스트 추출-02
     await page.goto("https://entertain.daum.net/ranking/keyword");
     await page.waitForSelector('ol.list_topkey');
     const newsPosts2 = await page.$$eval(
         'div.item_relate a',
         els => Array.from(new Set(els.map(e => e.href))) // 중복 제거
     );
-
+    // 뉴스 리스트 합치기
     newsPosts.push(...newsPosts2);
+    // 조회 시간 1시간 이내 기사만 필터링
+    const toProcessLinks = newsPosts.filter(url => {
+        const match = url.match(/(\d{17})$/); // URL에서 뒤의 숫자 부분만 추출
+        if (!match) return false; // 숫자 없으면 제외
+        const timestamp = match[1];
+        return isWithinLastHour(timestamp);
+    });
 
-    // 기존에 수집한 링크와 중복되는 링크는 제거
-    const existingSet = new Set(Array.isArray(manage.links) ? manage.links : []);
-    const uniqueNewsPosts = newsPosts.filter(l => !existingSet.has(l));
-    const toProcessLinks = uniqueNewsPosts;
-
+    // 기사 크롤링 시작
     let count = 1;
     const results = [];
     for (const link of toProcessLinks) {
         logWithTime(`크롤링 중...[${count++}/${toProcessLinks.length}] ${link}`, '🔍');
-
+        if (count > 10) continue;
         // 2. 기사별 제목, 기사 크롤링
         let title = '';
         let article = '';
@@ -286,23 +274,6 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
     // time_check.json 저장
     fs.writeFileSync(`${dirPath}/daum_entertainment_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
-
-    // 관리 파일 업데이트: 수집한 링크를 manage.links에 병합하고 count/date를 갱신
-    try {
-        const processedLinks = toProcessLinks || [];
-        const mergedSet = new Set(Array.isArray(manage.links) ? manage.links : []);
-        for (const l of processedLinks) mergedSet.add(l);
-        const mergedLinks = Array.from(mergedSet);
-
-        manage.links = mergedLinks;
-        manage.count += mergedLinks.length;
-        manage.date = getKstIsoNow();
-
-        fs.writeFileSync(`${dirPath}/daum_entertainment_manage.json`, JSON.stringify(manage, null, 2), 'utf-8');
-        logWithTime(`manage 파일 업데이트 완료`, '✅');
-    } catch (e) {
-        console.error('manage 파일 저장 중 오류:', e);
-    }
 
     await browser.close();
 })();

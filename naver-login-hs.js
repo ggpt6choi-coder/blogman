@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime } = require('./common');
+const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 // node-fetch v3+ (CommonJS): fetch is default export
 const _fetch = fetch.default || fetch;

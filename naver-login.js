@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime } = require('./common');
+const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부

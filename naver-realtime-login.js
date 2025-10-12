@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime } = require('./common');
+const { logWithTime, getAdItemLink } = require('./common');
 const fs = require('fs');
 
 // ==========================

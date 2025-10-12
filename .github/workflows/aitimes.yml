@@ -1,0 +1,94 @@
+name: AI TIMES Crawling
+
+on:
+  # schedule:
+  #   - cron: '0 22 * * *'  # 오전 7시 (KST)
+  #   - cron: '0 23 * * *'  # 오전 8시 (KST)
+  #   - cron: '0 0 * * *'   # 오전 9시 (KST)
+  #   - cron: '0 1 * * *'   # 오전 10시 (KST)
+  #   - cron: '0 2 * * *'   # 오전 11시 (KST)
+  #   - cron: '0 3 * * *'   # 정오 12시 (KST)
+  #   - cron: '0 4 * * *'   # 오후 1시 (KST)
+  #   - cron: '0 5 * * *'   # 오후 2시 (KST)
+  #   - cron: '0 6 * * *'   # 오후 3시 (KST)
+  #   - cron: '0 7 * * *'   # 오후 4시 (KST)
+  #   - cron: '0 8 * * *'   # 오후 5시 (KST)
+  #   - cron: '0 9 * * *'   # 오후 6시 (KST)
+  #   - cron: '0 10 * * *'  # 오후 7시 (KST)
+    
+  workflow_dispatch:
+
+permissions:
+  contents: write  # ← 이 한 줄이 핵심!
+  
+jobs:
+  run-batch:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers (only if missing)
+        run: |
+          if [ ! -d ~/.cache/ms-playwright ]; then
+            npx playwright install --with-deps
+          fi
+
+      - name: Run crawling-aitimes.js
+        run: node crawling-aitimes.js > aitimes_crawl_log.txt 2>&1
+        env:
+          GEMINI_API_KEY_AITIMES: ${{ secrets.GEMINI_API_KEY_AITIMES }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      # 데이터 파일과 로그 아티팩트 업로드
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-artifacts
+          path: |
+            aitimes_crawl_log.txt
+            data/**
+            mainFrame_not_found_*.png
+
+      # data 폴더를 리포지토리에 커밋 & 푸시
+      - name: Commit data to repository
+        if: always()
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/**
+          if ! git diff --cached --quiet; then
+            git commit -m "자동 업데이트 news data"
+            git push -f https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
+          else
+            echo "No changes to commit"
+          fi
+

@@ -78,7 +78,10 @@ async function writeBlog({
   await page.keyboard.press('Enter');
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
+
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
+  await frame.waitForTimeout(3000);
 
   if (Array.isArray(content)) {
     for (const section of content) {
@@ -116,10 +119,11 @@ async function writeBlog({
     await frame.waitForTimeout(300);
   }
 
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  await frame.waitForTimeout(3000);
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+
   const spans = await frame.$$(contentSpanSelector);
   const lastSpan = spans[spans.length - 1];
   if (lastSpan) {

@@ -76,7 +76,10 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
+
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
+  await frame.waitForTimeout(3000);
 
   if (Array.isArray(content)) {
     for (const section of content) {
@@ -114,22 +117,11 @@ async function writeBlog({
     await frame.waitForTimeout(300);
   }
 
-  // await frame.type(
-  //   contentSpanSelector,
-  //   `아래 기사를 참고하여 정리 한 개인적인 생각입니다.`,
-  //   { delay: 80 }
-  // );
-  // await page.keyboard.press('Enter');
-  // await frame.type(contentSpanSelector, url, { delay: 80 });
-  // await page.waitForTimeout(300);
-  // await page.keyboard.press('Enter');
-  // await page.waitForTimeout(300);
-  // await page.keyboard.press('Enter');
-  // await page.waitForTimeout(5000);
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  await frame.waitForTimeout(3000);
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+
   const spans = await frame.$$(contentSpanSelector);
   const lastSpan = spans[spans.length - 1];
   if (lastSpan) {

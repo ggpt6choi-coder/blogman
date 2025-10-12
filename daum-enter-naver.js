@@ -1,9 +1,9 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime } = require('./common');
+const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
@@ -78,7 +78,10 @@ async function writeBlog({
   await page.keyboard.press('Enter');
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
+
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
+  await frame.waitForTimeout(3000);
 
   if (Array.isArray(content)) {
     for (const section of content) {
@@ -116,14 +119,16 @@ async function writeBlog({
     await frame.waitForTimeout(300);
   }
 
+  await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
+
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  await frame.waitForTimeout(3000);
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+
   const spans = await frame.$$(contentSpanSelector);
   const lastSpan = spans[spans.length - 1];
   if (lastSpan) {
-    await lastSpan.type(hashTag.join(' '), { delay: 80 });
+    await lastSpan.type(hashTag.join(' '), { delay: 40 });
   }
 
   // 발행 세팅
@@ -158,17 +163,7 @@ async function writeBlog({
   await frame.selectOption('select.hour_option__J_heO', hourStr);
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
 
-  // 4. 카테고리 설정
-  // const typeMap = {
-  //   sisa: '시사',
-  //   spo: '스포츠',
-  //   ent: '연예',
-  //   pol: '정치',
-  //   eco: '경제',
-  //   soc: '사회',
-  //   int: '세계',
-  //   its: 'IT/과학',
-  // };
+  // 4. 카테고리 설정 (연예)
   const categoryName = '연예';
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
   await frame.click(

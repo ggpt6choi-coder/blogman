@@ -2,8 +2,8 @@ require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime } = require('./common');
 const fetch = require('node-fetch');
-// node-fetch v3+ (CommonJS): fetch is default export
 const _fetch = fetch.default || fetch;
+const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
@@ -209,7 +209,7 @@ async function writeBlog({
 
   //시작
   const browser = await chromium.launch({
-    headless: true,
+    headless: !SHOW_BROWSER,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
   const context = await browser.newContext({

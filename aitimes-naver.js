@@ -181,14 +181,14 @@ async function writeBlog({
 
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/daum_entertainment_time_check.json';
+  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/aitimes_time_check.json';
   const timeRes = await _fetch(TIME_CHECK_URL);
   const timeData = await timeRes.json();
   const createdTime = new Date(timeData.created);
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000);
   if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 1시간 이내가 아닙니다.', '❌')
+    logWithTime('실행 조건 불만족: aitimes_time_check.json의 created 값이 1시간 이내가 아닙니다.', '❌')
     process.exit(0);
   }
 
@@ -214,7 +214,7 @@ async function writeBlog({
   // const newsList = JSON.parse(fs.readFileSync('./data/daum_entertainment_data.json', 'utf-8'));
 
   // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/daum_entertainment_data.json';
+  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/aitimes_data.json';
   const response = await _fetch(NEWS_JSON_URL);
   const newsList = await response.json();
 

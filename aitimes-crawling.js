@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 const fs = require('fs');
-const { logWithTime } = require('./common');
+const { logWithTime, getKstIsoNow } = require('./common');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 (async () => {
@@ -21,8 +21,10 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
     const newsPosts = await page.$$('li.altlist-webzine-item');
     const now = new Date();
 
+    let count = 1;
     const results = [];
     for (const post of newsPosts) {
+        if (count > 4) continue;
         // 2. 날짜/시간 추출
         let dateText;
         try {
@@ -228,31 +230,20 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
     }
 
+    //////////////////////////////////////////////////////////////////////////
+    //🌟🌟🌟🌟🌟 json 파일로 저장 
+    logWithTime(`크롤링된 뉴스 기사 수: ${results.length}`, '✅');
+
     // 🔵파일로 저장
     const dirPath = 'data';
     if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
         logWithTime('data 디렉터리 생성됨');
     }
-    fs.writeFileSync(`${dirPath}/data_aitimes.json`, JSON.stringify(results, null, 2), 'utf-8');
+    // daum_entertainment_data.json 저장
+    fs.writeFileSync(`${dirPath}/aitimes_data.json`, JSON.stringify(results, null, 2), 'utf-8');
+    // time_check.json 저장
+    fs.writeFileSync(`${dirPath}/aitimes_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
 
-    const nowTime = new Date();
-    const utc = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
-    const kst = new Date(utc + 9 * 60 * 60000);
-    // KST 기준 시각을 구성
-    const year = kst.getFullYear();
-    const month = String(kst.getMonth() + 1).padStart(2, "0");
-    const day = String(kst.getDate()).padStart(2, "0");
-    const hours = String(kst.getHours()).padStart(2, "0");
-    const minutes = String(kst.getMinutes()).padStart(2, "0");
-    const seconds = String(kst.getSeconds()).padStart(2, "0");
-
-    fs.writeFileSync(
-        `${dirPath}/time_check_aitimes.json`,
-        JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
-        'utf-8'
-    );
-
-    console.log(`크롤링된 IT 뉴스 기사 수: ${results.length}`);
     await browser.close();
 })();

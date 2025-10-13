@@ -2,6 +2,7 @@ name: nate-crawling [wow*****]
 
 on:
   schedule:
+  # schedule:
     - cron: '0 22 * * *' # 한국시간 오전 6:50 (UTC 21:50 전날)
     - cron: '0 7 * * *' # 한국시간 오후 4:00 (UTC 07:00)
 

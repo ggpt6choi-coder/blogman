@@ -40,7 +40,7 @@ async function writeBlog({
   // '취소' 버튼 처리 (있으면 클릭)
   const cancelBtn = await frame
     .waitForSelector('button.se-popup-button.se-popup-button-cancel', {
-      timeout: 2000,
+      timeout: 5000,
     })
     .catch(() => null);
   if (cancelBtn) await cancelBtn.click();
@@ -48,7 +48,7 @@ async function writeBlog({
   // '도움말' 버튼 처리 (있으면 클릭)
   const helpBtn = await frame
     .waitForSelector('article > div > header > button', {
-      timeout: 2000,
+      timeout: 5000,
     })
     .catch(() => null);
   if (helpBtn) await helpBtn.click();

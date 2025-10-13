@@ -61,7 +61,7 @@ jobs:
       - name: Run daum-enter-crawling.js
         run: node daum-enter-crawling.js > daum_entertainment_crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY_DAUM_ENTERTAINMENT: ${{ secrets.GEMINI_API_KEY_DAUM_ENTERTAINMENT }}
+          GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts

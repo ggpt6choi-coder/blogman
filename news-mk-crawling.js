@@ -78,6 +78,11 @@ async function fetchAndExtractXML(url) {
         );
       }
 
+      if (item.title.includes('증권') || item.title.includes('이벤트') || item.title.includes('혜택') || item.title.includes('주식') || item.title.includes('선착순')) {
+        await page.close();
+        continue;
+      }
+
       let title = item.title || '[제목 없음]';
       let article = '';
       if (navigationSuccess) {

@@ -1,4 +1,5 @@
-const fs = require('fs');
+// import fetch from "node-fetch"; // Node.js 18 이상이면 전역 fetch 사용 가능
+// const fs = require('fs');
 
 //✅ 로그 함수: 시간과 메시지 출력
 const logWithTime = (message, sticker = '🤖') => {
@@ -45,19 +46,39 @@ function isWithinLastHour(timestampStr) {
   return diffMs >= 0 && diffMs <= oneHourMs;
 }
 
+
+const loadLinks = async () => {
+  const url = "https://raw.githubusercontent.com/ggpt6choi-coder/blogman/refs/heads/main/adv-item-links.json";
+  console.log("Loading links from:", url);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("data loaded:", data);
+    return data.links; // JSON 구조에 따라 조정
+  } catch (error) {
+    console.error("Error loading links:", error);
+    return [];
+  }
+};
+
 //✅ 네이버 커넥트 URL 가져오는 함수
 // JSON 파일에서 링크를 불러오는 함수
-const loadLinks = () => {
-  return new Promise((resolve, reject) => {
-    fs.readFile('adv-item-links.json', 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(JSON.parse(data).links); // links 배열만 반환
-      }
-    });
-  });
-};
+// const loadLinks = () => {
+//   return new Promise((resolve, reject) => {
+//     fs.readFile('adv-item-links.json', 'utf8', (err, data) => {
+//       if (err) {
+//         reject(err);
+//       } else {
+//         resolve(JSON.parse(data).links); // links 배열만 반환
+//       }
+//     });
+//   });
+// };
+
 // getAdItemLink 함수 수정 (비동기 처리)
 const getAdItemLink = async () => {
   try {

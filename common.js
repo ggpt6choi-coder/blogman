@@ -49,7 +49,6 @@ function isWithinLastHour(timestampStr) {
 
 const loadLinks = async () => {
   const url = "https://raw.githubusercontent.com/ggpt6choi-coder/blogman/refs/heads/main/adv-item-links.json";
-  console.log("Loading links from:", url);
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -57,7 +56,6 @@ const loadLinks = async () => {
     }
 
     const data = await response.json();
-    console.log("data loaded:", data);
     return data.links; // JSON 구조에 따라 조정
   } catch (error) {
     console.error("Error loading links:", error);

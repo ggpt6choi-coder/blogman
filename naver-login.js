@@ -76,6 +76,8 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
+  await frame.type(contentSpanSelector, "이 포스팅은 네이버 쇼핑 커넥트 활동의 일환으로 판매 발생 시 수수료를 제공받습니다.", { delay: 40 });
+  await page.keyboard.press('Enter');
 
   await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');

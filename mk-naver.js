@@ -191,6 +191,19 @@ async function writeBlog({
 // 실행 부분
 // ==========================
 (async () => {
+  // 외부 time_check.json에서 created 시간 읽기
+  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/mk_time_check.json';
+  const timeRes = await _fetch(TIME_CHECK_URL);
+  const timeData = await timeRes.json();
+  const createdTime = new Date(timeData.created);
+  const now = new Date();
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+    logWithTime('실행 조건 불만족: mk_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
+    process.exit(0);
+  }
+
+  //시작
   const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -211,8 +224,12 @@ async function writeBlog({
   // 카테고리명 인자 받아서 해당 JSON 파일 읽기
   // const category = process.argv[2] || 'economy';
   // const fileName = `./data/mk-news-${category}.json`;
-  const fileName = `./data/mk-news.json`;
-  const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
+  // const fileName = `./data/mk-news.json`;
+  // const newsList = JSON.parse(fs.readFileSync(fileName, 'utf-8'));
+
+  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/mk_data.json';
+  const response = await _fetch(NEWS_JSON_URL);
+  const newsList = await response.json();
 
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {

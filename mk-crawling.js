@@ -6,6 +6,7 @@ const axios = require('axios');
 const { XMLParser } = require('fast-xml-parser');
 const { logWithTime } = require('./common');
 const { exec } = require('child_process');
+const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // RSS 링크와 타입 매핑
 const typeMap = {
@@ -52,7 +53,7 @@ async function fetchAndExtractXML(url) {
     'https://www.mk.co.kr/rss/50700001/', // 게임
   ];
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: !SHOW_BROWSER });
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
@@ -235,18 +236,19 @@ async function fetchAndExtractXML(url) {
     }
   }
 
+  //🌟🌟🌟🌟🌟 json 파일로 저장 
+  logWithTime(`크롤링된 뉴스 기사 수: ${newsArr.length}`, '✅');
+
   const typeName = typeMap[typeLink] || 'unknown';
   const dirPath = 'data';
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
     logWithTime('data 디렉터리 생성됨');
   }
-  fs.writeFileSync(
-    `${dirPath}/mk-news.json`,
-    JSON.stringify(newsArr.slice(0, 10), null, 2),
-    'utf-8'
-  );
-  logWithTime(`뉴스 데이터 저장 완료: ${newsArr.slice(0, 10).length}`);
+  // mk_data.json 저장
+  fs.writeFileSync(`${dirPath}/mk_data.json`, JSON.stringify(results, null, 2), 'utf-8');
+  // mk_time_check.json 저장
+  fs.writeFileSync(`${dirPath}/mk_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
 
   await browser.close();
 })();

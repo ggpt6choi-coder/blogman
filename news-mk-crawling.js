@@ -106,7 +106,16 @@ async function fetchAndExtractXML(url) {
       let newTitle = '';
       if (title !== '[제목 없음]') {
         try {
-          const prompt = `다음 뉴스 제목을 네이버 블로그 검색엔진에 최적화된 자연스러운 제목으로 바꿔줘.\n- 광고, 논란, 부정적 뉘앙스는 피하고 정보 전달에 집중해.\n- 기사 내용을 참고해.\n- 기사 내용: ${article}\n- 원본 제목: ${title}\n답변은 바로 복사해 쓸 수 있게 변경된 제목만 알려줘. 다른 말은 필요 없어.\n변경:`;
+          const prompt = `다음 뉴스 제목을 네이버 블로그 검색 최적화된 제목으로 바꿔줘.\n                        
+                            - 광고, 논란, 자극적 표현은 피할 것.\n                        
+                            - 따옴표(\" '\), 대괄호([ ]), 특수문자(→, …, ★ 등)는 모두 제거할 것.\n           
+                            - 뉴스 핵심 키워드를 포함해 자연스러운 설명형 문장으로 만들 것.\n
+                            - 제목 길이는 30~45자로 조정할 것.\n
+                            - 기사 내용을 참고해.\n
+                            - 기사 내용: ${article}\n
+                            - 원본 제목: ${title}\n
+                            답변은 바로 복사해 쓸 수 있도록 제목만 알려줘. 다른 말은 필요 없어.\n
+                            변경:\n`;
           const result = await model.generateContent(prompt);
           const raw = result.response.text();
           newTitle = raw.trim();
@@ -116,6 +125,9 @@ async function fetchAndExtractXML(url) {
           newTitle = '[변환 실패]';
           const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e
             }\n`;
+          if (!fs.existsSync('error-log')) {
+            fs.mkdirSync('error-log', { recursive: true });
+          }
           fs.appendFileSync('error-log/gemini-mk-error.log', errorLog, 'utf-8');
         }
       } else {

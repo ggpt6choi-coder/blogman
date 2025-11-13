@@ -49,8 +49,8 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run news-crawling.js
-        run: node news-crawling.js > crawl_log.txt 2>&1
+      - name: Run nate-crawling.js
+        run: node nate-crawling.js > nate-crawl_log.txt 2>&1
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -61,7 +61,7 @@ jobs:
         with:
           name: crawl-artifacts
           path: |
-            crawl_log.txt
+            nate-crawl_log.txt
             data/**
             mainFrame_not_found_*.png
 

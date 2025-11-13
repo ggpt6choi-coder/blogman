@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const axios = require('axios');
 const { XMLParser } = require('fast-xml-parser');
-const { logWithTime } = require('./common');
+const { logWithTime, getKstIsoNow } = require('./common');
 const { exec } = require('child_process');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 

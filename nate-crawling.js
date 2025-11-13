@@ -280,7 +280,7 @@ const { logWithTime } = require('./common');
         logWithTime('data 디렉터리 생성됨');
     }
     fs.writeFileSync(
-        `${dirPath}/news.json`,
+        `${dirPath}/nate.json`,
         JSON.stringify(newsArr, null, 2),
         'utf-8'
     );
@@ -297,7 +297,7 @@ const { logWithTime } = require('./common');
     const seconds = String(kst.getSeconds()).padStart(2, "0");
 
     fs.writeFileSync(
-        `${dirPath}/time_check.json`,
+        `${dirPath}/nate_time_check.json`,
         JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
         'utf-8'
     );

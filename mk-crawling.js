@@ -246,7 +246,7 @@ async function fetchAndExtractXML(url) {
     logWithTime('data 디렉터리 생성됨');
   }
   // mk_data.json 저장
-  fs.writeFileSync(`${dirPath}/mk_data.json`, JSON.stringify(results, null, 2), 'utf-8');
+  fs.writeFileSync(`${dirPath}/mk_data.json`, JSON.stringify(newsArr, null, 2), 'utf-8');
   // mk_time_check.json 저장
   fs.writeFileSync(`${dirPath}/mk_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
 

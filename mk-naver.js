@@ -1,6 +1,8 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
+const fetch = require("node-fetch");
+const _fetch = fetch.default || fetch;
 const fs = require('fs');
 
 // ==========================

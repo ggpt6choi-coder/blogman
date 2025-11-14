@@ -3,6 +3,7 @@ const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
+const fs = require('fs');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
@@ -250,6 +251,9 @@ async function writeBlog({
       const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${news.title
         }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
+      if (!fs.existsSync('error-log')) {
+          fs.mkdirSync('error-log', { recursive: true });
+      }
       fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)

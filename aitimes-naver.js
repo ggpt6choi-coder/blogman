@@ -3,15 +3,15 @@ const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
 // ==========================
 async function naverLogin(page) {
   await page.goto('https://nid.naver.com/nidlogin.login');
-  await page.fill('#id', process.env.NAVER_ID_HS);
-  await page.fill('#pw', process.env.NAVER_PW_HS.replace(/"/g, ''));
+  await page.fill('#id', process.env.NAVER_ID_JI);
+  await page.fill('#pw', process.env.NAVER_PW_JI.replace(/"/g, ''));
   await page.click('#log\\.login');
   await page.waitForNavigation();
 }
@@ -226,7 +226,7 @@ async function writeBlog({
 
     const blogData = {
       page,
-      blogName: process.env.BLOG_NAME_HS,
+      blogName: process.env.BLOG_NAME_JI,
       title: news.newTitle,
       content: news.newArticle,
       url: news.link,

@@ -64,7 +64,10 @@ async function fetchAndExtractXML(url) {
     const items = await fetchAndExtractXML(link);
     logWithTime(`[${typeMap[typeLink]}]기사 ${items.length}건 수집 시작`);
 
+    let count = 0;
     for (const item of items) {
+      if (count > 4) break;
+      count++;
       const page = await browser.newPage();
       let navigationSuccess = false;
       try {

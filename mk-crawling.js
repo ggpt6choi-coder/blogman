@@ -66,7 +66,7 @@ async function fetchAndExtractXML(url) {
 
     let count = 0;
     for (const item of items) {
-      if (count > 4) break;
+      if (count > 2) break;
       count++;
       const page = await browser.newPage();
       let navigationSuccess = false;

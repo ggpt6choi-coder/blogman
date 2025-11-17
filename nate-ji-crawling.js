@@ -55,7 +55,7 @@ const { logWithTime } = require('./common');
         const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
         let count = 0;
         for (const link of links) {
-            if (count > 30) break; // 최대 30개 뉴스만 처리
+            if (count > 2) break; // 최대 3개 뉴스만 처리
             count++;
             const newPage = await browser.newPage();
             await newPage.setExtraHTTPHeaders({ 'User-Agent': userAgent });
@@ -292,7 +292,6 @@ ${article}
             await newPage.close();
             // 요청 간 5~15초 랜덤 지연 (테스트 목적)
             await delay(5000 + Math.random() * 10000);
-            break;
         }
         await page.close();
     }

@@ -3,6 +3,7 @@ const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
+const fs = require('fs');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
@@ -76,7 +77,7 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
   await page.keyboard.press('Enter');
-  await frame.type(contentSpanSelector, title, { delay: 40 });
+  await frame.type(contentSpanSelector, "이 포스팅은 네이버 쇼핑 커넥트 활동의 일환으로 판매 발생 시 수수료를 제공받습니다.", { delay: 40 });
   await page.keyboard.press('Enter');
 
   await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
@@ -120,7 +121,6 @@ async function writeBlog({
   }
 
   await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
-
   await page.keyboard.press('Enter');
   await frame.waitForTimeout(3000);
   await page.keyboard.press('Enter');
@@ -128,8 +128,9 @@ async function writeBlog({
   const spans = await frame.$$(contentSpanSelector);
   const lastSpan = spans[spans.length - 1];
   if (lastSpan) {
-    await lastSpan.type(hashTag.join(' '), { delay: 40 });
+    await lastSpan.type(hashTag.join(' '), { delay: 80 });
   }
+  // await frame.type(contentSpanSelector, hashTag.join(' '), { delay: 80 });
 
   // 발행 세팅
   // 1. 발행 버튼 클릭 (frame context)
@@ -163,12 +164,22 @@ async function writeBlog({
   await frame.selectOption('select.hour_option__J_heO', hourStr);
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
 
-  // 4. 카테고리 설정 (연예)
-  // const categoryName = '연예';
-  // await frame.click('button[aria-label="카테고리 목록 버튼"]');
-  // await frame.click(
-  //   `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
-  // );
+  // 4. 카테고리 설정
+  const typeMap = {
+    sisa: '시사',
+    spo: '스포츠',
+    ent: '연예',
+    pol: '정치',
+    eco: '경제',
+    soc: '사회',
+    int: '세계',
+    its: 'IT/과학',
+  };
+  const categoryName = typeMap[type] || type;
+  await frame.click('button[aria-label="카테고리 목록 버튼"]');
+  await frame.click(
+    `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
+  );
 
   // 발행버튼 클릭
   await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
@@ -178,17 +189,16 @@ async function writeBlog({
 // ==========================
 // 🔵 실행 부분
 // ==========================
-
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/aitimes_time_check.json';
+  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate_time_check.json';
   const timeRes = await _fetch(TIME_CHECK_URL);
   const timeData = await timeRes.json();
   const createdTime = new Date(timeData.created);
   const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
   if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: aitimes_time_check.json의 created 값이 1시간 이내가 아닙니다.', '❌')
+    console.log('실행 조건 불만족: nate_time_check.json의 created 값이 2시간 이내가 아닙니다.');
     process.exit(0);
   }
 
@@ -209,12 +219,12 @@ async function writeBlog({
   logWithTime('시작');
   await naverLogin(page);
   logWithTime('로그인 완료');
-  // news.json에서 로커엘 있는거 데이터 읽기
+  // nate.json에서 로커엘 있는거 데이터 읽기
   // const fs = require('fs');
-  // const newsList = JSON.parse(fs.readFileSync('./data/daum_entertainment_data.json', 'utf-8'));
+  // const newsList = JSON.parse(fs.readFileSync('./data/nate.json', 'utf-8'));
 
   // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/aitimes_data.json';
+  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate.json';
   const response = await _fetch(NEWS_JSON_URL);
   const newsList = await response.json();
 
@@ -227,21 +237,23 @@ async function writeBlog({
     const blogData = {
       page,
       blogName: process.env.BLOG_NAME_JI,
-      title: news.newTitle,
+      title: news.newTitle || news.title,
       content: news.newArticle,
-      url: news.link,
+      url: news.url,
       hashTag: news.hashTag,
-      type: '',
+      type: news.type,
       idx: i,
     };
     try {
       await writeBlog(blogData);
-      logWithTime(`🍀글 작성 완료(${i + 1}/${newsList.length}): ${news.newTitle}`);
     } catch (err) {
       errCount++;
       const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${news.title
         }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
+      if (!fs.existsSync('error-log')) {
+        fs.mkdirSync('error-log', { recursive: true });
+      }
       fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
     }
     // 필요시 대기시간 추가 가능 (예: await page.waitForTimeout(1000);)

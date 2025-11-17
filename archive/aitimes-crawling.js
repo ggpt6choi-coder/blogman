@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 const fs = require('fs');
-const { logWithTime, getKstIsoNow } = require('./common');
+const { logWithTime, getKstIsoNow } = require('../common');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 (async () => {

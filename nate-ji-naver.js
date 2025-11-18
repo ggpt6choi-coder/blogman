@@ -191,7 +191,7 @@ async function writeBlog({
 // ==========================
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate_time_check.json';
+  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate-ji_time_check.json';
   const timeRes = await _fetch(TIME_CHECK_URL);
   const timeData = await timeRes.json();
   const createdTime = new Date(timeData.created);
@@ -224,7 +224,7 @@ async function writeBlog({
   // const newsList = JSON.parse(fs.readFileSync('./data/nate.json', 'utf-8'));
 
   // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate.json';
+  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/nate-ji.json';
   const response = await _fetch(NEWS_JSON_URL);
   const newsList = await response.json();
 

@@ -165,21 +165,21 @@ async function writeBlog({
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
 
   // 4. 카테고리 설정
-  const typeMap = {
-    sisa: '시사',
-    spo: '스포츠',
-    ent: '연예',
-    pol: '정치',
-    eco: '경제',
-    soc: '사회',
-    int: '세계',
-    its: 'IT/과학',
-  };
-  const categoryName = typeMap[type] || type;
-  await frame.click('button[aria-label="카테고리 목록 버튼"]');
-  await frame.click(
-    `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
-  );
+  // const typeMap = {
+  //   sisa: '시사',
+  //   spo: '스포츠',
+  //   ent: '연예',
+  //   pol: '정치',
+  //   eco: '경제',
+  //   soc: '사회',
+  //   int: '세계',
+  //   its: 'IT/과학',
+  // };
+  // const categoryName = typeMap[type] || type;
+  // await frame.click('button[aria-label="카테고리 목록 버튼"]');
+  // await frame.click(
+  //   `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
+  // );
 
   // 발행버튼 클릭
   await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });

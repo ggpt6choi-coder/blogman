@@ -236,7 +236,7 @@ async function writeBlog({
     };
     try {
       await writeBlog(blogData);
-      logWithTime(`🍀글 작성 완료(${i + 1}/${newsList.length}): ${news.newTitle}`);
+      // logWithTime(`🍀글 작성 완료(${i + 1}/${newsList.length}): ${news.newTitle}`);
     } catch (err) {
       errCount++;
       const errorLog = `[${new Date().toISOString()}] [writeBlog 오류] idx: ${i}, title: ${news.title

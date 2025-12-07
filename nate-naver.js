@@ -76,9 +76,26 @@ async function writeBlog({
 
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
-  await page.keyboard.press('Enter');
-  await frame.type(contentSpanSelector, "이 포스팅은 네이버 쇼핑 커넥트 활동의 일환으로 판매 발생 시 수수료를 제공받습니다.", { delay: 40 });
-  await page.keyboard.press('Enter');
+  // 📸 이미지 업로드 (맨 위)
+  try {
+    const path = require('path');
+    const imagePath = path.resolve('image/sentence.png');
+
+    // 파일 선택창 대기
+    const fileChooserPromise = page.waitForEvent('filechooser');
+
+    // '사진' 버튼 클릭 (상단 툴바의 첫 번째 버튼인 경우가 많음, 클래스로 시도)
+    // se-image-toolbar-button 클래스가 일반적임. 실패 시 예외처리.
+    await frame.click('button.se-image-toolbar-button');
+
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(imagePath);
+
+    await frame.waitForTimeout(2000); // 업로드 대기
+    await page.keyboard.press('Enter'); // 줄바꿈
+  } catch (e) {
+    console.log('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
+  }
 
   await frame.type(contentSpanSelector, await getAdItemLink(), { delay: 40 });
   await page.keyboard.press('Enter');
@@ -252,7 +269,7 @@ async function writeBlog({
         }\nError: ${err && err.stack ? err.stack : err}\n`;
       console.error(errorLog);
       if (!fs.existsSync('error-log')) {
-          fs.mkdirSync('error-log', { recursive: true });
+        fs.mkdirSync('error-log', { recursive: true });
       }
       fs.appendFileSync('error-log/naver-upload-error.log', errorLog, 'utf-8');
     }

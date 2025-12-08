@@ -9,7 +9,7 @@ const { logWithTime } = require('./common');
     const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
     // const scList = ['sisa'];
     const newsArr = [];
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_WOW);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     // 테스트 목적: User-Agent에 서비스명/이메일 포함
     const userAgent = 'MyCrawler/1.0 (contact: your@email.com)';

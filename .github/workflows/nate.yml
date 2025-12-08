@@ -49,8 +49,8 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run nate-wow-naver.js
-        run: node nate-wow-naver.js > nate-crawl_log.txt 2>&1
+      - name: Run nate-wow-crawling.js
+        run: node nate-wow-crawling.js > nate-crawl_log.txt 2>&1
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_WOW }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}

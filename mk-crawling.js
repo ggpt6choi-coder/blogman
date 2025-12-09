@@ -8,6 +8,20 @@ const { logWithTime, getKstIsoNow } = require('./common');
 const { exec } = require('child_process');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
+// Gemini API 재시도 헬퍼 함수
+async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (e) {
+      // 503 Service Unavailable or other transient errors
+      if (i === retries - 1) throw e;
+      logWithTime(`Gemini API error (attempt ${i + 1}/${retries}): ${e.message}. Retrying...`);
+      await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+    }
+  }
+}
+
 // RSS 링크와 타입 매핑
 const typeMap = {
   'https://www.mk.co.kr/rss/30100041/': 'economy',
@@ -53,6 +67,11 @@ async function fetchAndExtractXML(url) {
     'https://www.mk.co.kr/rss/50700001/', // 게임
   ];
 
+
+  if (!process.env.GEMINI_API_KEY_FASTMAN) {
+    logWithTime('GEMINI_API_KEY_FASTMAN is missing in .env');
+    process.exit(1);
+  }
   const browser = await chromium.launch({ headless: !SHOW_BROWSER });
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_FASTMAN);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
@@ -120,7 +139,7 @@ async function fetchAndExtractXML(url) {
                             - 원본 제목: ${title}\n
                             답변은 바로 복사해 쓸 수 있도록 제목만 알려줘. 다른 말은 필요 없어.\n
                             변경:\n`;
-          const result = await model.generateContent(prompt);
+          const result = await generateContentWithRetry(model, prompt);
           const raw = result.response.text();
           newTitle = raw.trim();
           if (!newTitle) newTitle = '[빈 응답]';
@@ -162,7 +181,7 @@ async function fetchAndExtractXML(url) {
                           원본: ${article}
                           `;
 
-          const result = await model.generateContent(prompt);
+          const result = await generateContentWithRetry(model, prompt);
           const raw = result.response.text().trim();
           try {
             newArticle = JSON.parse(raw);
@@ -172,12 +191,13 @@ async function fetchAndExtractXML(url) {
               newArticle = JSON.parse(match[0]);
             } else {
               newArticle = '[변환 실패]';
+              logWithTime('JSON parsing failed. Raw:', raw);
             }
           }
           await new Promise((res) => setTimeout(res, 2000));
         } catch (e) {
           newArticle = '[변환 실패]';
-          console.log(`newArticle = '[변환 실패]'`);
+          logWithTime(`newArticle = '[변환 실패]'`);
           const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
           if (!fs.existsSync('error-log')) {
             fs.mkdirSync('error-log', { recursive: true });
@@ -186,14 +206,14 @@ async function fetchAndExtractXML(url) {
         }
       } else {
         newArticle = '[본문 없음]';
-        console.log(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
+        logWithTime(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
       }
 
       let hashTag = '';
       if (article !== '[본문 없음]' && article.length !== 0) {
         try {
           const prompt = `다음 뉴스 본문을 기반으로 네이버 검색 알고리즘에 최적화된 해시태그 5개이상 10개미만 만들어줘.\n\n- '#해시태그1 #해시태그2 #해시태그3' 형태로 만들어줘.\n\n- 답변은 내가 요청한 형태로만 대답해줘. 바로 복사해서 사용할꺼니까\n\n기사: ${article}\n\n:`;
-          const result = await model.generateContent(prompt);
+          const result = await generateContentWithRetry(model, prompt);
           hashTag = result.response.text().trim().split(/\s+/);
           await new Promise((res) => setTimeout(res, 5000));
           if (

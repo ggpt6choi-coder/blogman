@@ -4,7 +4,25 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const { logWithTime } = require('./common');
 
+// Gemini API 재시도 헬퍼 함수
+async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 2000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await model.generateContent(prompt);
+        } catch (e) {
+            // 503 Service Unavailable or other transient errors
+            if (i === retries - 1) throw e;
+            logWithTime(`Gemini API error (attempt ${i + 1}/${retries}): ${e.message}. Retrying...`);
+            await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+        }
+    }
+}
+
 (async () => {
+    if (!process.env.GEMINI_API_KEY_WOW) {
+        logWithTime('GEMINI_API_KEY_WOW is missing in .env');
+        process.exit(1);
+    }
     const browser = await chromium.launch({ headless: true });
     const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
     // const scList = ['sisa'];
@@ -54,8 +72,9 @@ const { logWithTime } = require('./common');
         const url = `https://news.nate.com/rank/interest?sc=${sc}&p=day&date=${dateStr}`;
         await page.goto(url);
         const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
+
         for (const link of links) {
-            console.log(link);
+            logWithTime(`Processing: ${link}`);
             const newPage = await browser.newPage();
             await newPage.setExtraHTTPHeaders({ 'User-Agent': userAgent });
             // 광고/트래킹/이미지 등 불필요한 리소스 요청 차단
@@ -86,7 +105,7 @@ const { logWithTime } = require('./common');
 
             // 캡차 감지 시 즉시 중단
             if (await newPage.$('input[type="checkbox"][name*="captcha"], .g-recaptcha, iframe[src*="recaptcha"]')) {
-                console.log('CAPTCHA 감지됨. 크롤링 중단.');
+                logWithTime('CAPTCHA 감지됨. 크롤링 중단.');
                 process.exit(1);
             }
 
@@ -105,7 +124,7 @@ const { logWithTime } = require('./common');
                         el.textContent.trim()
                     );
                 } catch (e) {
-                    console.log(`title = '[제목 없음]' ${link}`);
+                    logWithTime(`title = '[제목 없음]' ${link}`);
                 }
             }
             // 본문 크롤링
@@ -133,7 +152,7 @@ const { logWithTime } = require('./common');
                         .replace(/\s+/g, ' ')
                         .trim();
                 } catch (e) {
-                    console.log(`article = '[본문 없음]' ${link} `);
+                    logWithTime(`article = '[본문 없음]' ${link} `);
                 }
             }
             // Gemini API로 제목 변환
@@ -150,14 +169,14 @@ const { logWithTime } = require('./common');
                     - 원본 제목: ${title}\n
                     답변은 바로 복사해 쓸 수 있도록 제목만 알려줘. 다른 말은 필요 없어.\n
                     변경:\n`;
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text();
                     newTitle = raw.trim();
                     if (!newTitle) newTitle = '[빈 응답]';
                     await new Promise((res) => setTimeout(res, 2000));
                 } catch (e) {
                     newTitle = '[변환 실패]';
-                    console.log(`newTitle = '[변환 실패]'`);
+                    logWithTime(`newTitle = '[변환 실패]'`);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
@@ -166,7 +185,7 @@ const { logWithTime } = require('./common');
                 }
             } else {
                 newTitle = '[제목 없음]';
-                console.log(`title parsing에 실패해서 newTitle = '[제목 없음]' ${link}`);
+                logWithTime(`title parsing에 실패해서 newTitle = '[제목 없음]' ${link}`);
             }
             // Gemini API로 본문 재가공
             let newArticle = '';
@@ -193,22 +212,28 @@ const { logWithTime } = require('./common');
                     원본: ${article}
                     `;
 
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text().trim();
                     try {
                         newArticle = JSON.parse(raw);
                     } catch (jsonErr) {
                         const match = raw.match(/\[.*\]/s);
                         if (match) {
-                            newArticle = JSON.parse(match[0]);
+                            try {
+                                newArticle = JSON.parse(match[0]);
+                            } catch (e) {
+                                newArticle = '[변환 실패]';
+                                console.log('JSON parsing failed even with regex match. Raw:', raw);
+                            }
                         } else {
                             newArticle = '[변환 실패]';
+                            console.log('JSON parsing failed. Raw:', raw);
                         }
                     }
                     await new Promise((res) => setTimeout(res, 2000));
                 } catch (e) {
                     newArticle = '[변환 실패]';
-                    console.log(`newArticle = '[변환 실패]'`);
+                    logWithTime(`newArticle = '[변환 실패]'`);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
@@ -217,7 +242,7 @@ const { logWithTime } = require('./common');
                 }
             } else {
                 newArticle = '[본문 없음]';
-                console.log(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
+                logWithTime(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
             }
 
             // Gemini API로 해시태그 생성
@@ -228,7 +253,7 @@ const { logWithTime } = require('./common');
                     - '#해시태그1 #해시태그2 #해시태그3' 형태로 만들어줘.\n\n
                     - 답변은 내가 요청한 형태로만 대답해줘. 바로 복사해서 사용할꺼니까\n\n
                     - 기사: ${article}\n\n:`;
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     hashTag = result.response.text().trim().split(/\s+/);
                     await new Promise((res) => setTimeout(res, 2000));
                     if (
@@ -242,7 +267,7 @@ const { logWithTime } = require('./common');
                     }
                 } catch (e) {
                     hashTag = [];
-                    console.log(`hashTag = '[생성 실패]' ${link}`);
+                    logWithTime(`hashTag = '[생성 실패]' ${link}`);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
@@ -268,8 +293,9 @@ const { logWithTime } = require('./common');
                 });
             }
             await newPage.close();
-            // 요청 간 5~15초 랜덤 지연 (테스트 목적)
-            await delay(5000 + Math.random() * 10000);
+            // 10 RPM 제한 준수를 위한 지연 (기사당 3회 호출하므로, 기사당 최소 18초 이상 소요되어야 함)
+            // 기존 5~15초 -> 15~25초로 변경
+            await delay(15000 + Math.random() * 10000);
         }
         await page.close();
     }

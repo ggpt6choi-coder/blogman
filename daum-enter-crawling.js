@@ -6,12 +6,30 @@ const fs = require('fs');
 const { logWithTime, getKstIsoNow, isWithinLastHour } = require('./common');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
+// Gemini API 재시도 헬퍼 함수
+async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 2000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await model.generateContent(prompt);
+        } catch (e) {
+            // 503 Service Unavailable or other transient errors
+            if (i === retries - 1) throw e;
+            logWithTime(`Gemini API error (attempt ${i + 1}/${retries}): ${e.message}. Retrying...`);
+            await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+        }
+    }
+}
+
 (async () => {
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
     //////////////////////////////////////////////////////////////////////////
     //🌟🌟🌟🌟🌟 초기 세팅
     logWithTime('크롤링 시작', '⏰');
+    if (!process.env.GEMINI_API_KEY_HS) {
+        logWithTime('GEMINI_API_KEY_HS is missing in .env');
+        process.exit(1);
+    }
     const browser = await chromium.launch({ headless: !SHOW_BROWSER });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
@@ -128,14 +146,14 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                             - 원본 제목: ${title}\n
                             답변은 바로 복사해 쓸 수 있도록 제목만 알려줘. 다른 말은 필요 없어.\n
                             변경:\n`;
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text();
                     newTitle = raw.trim();
                     if (!newTitle) newTitle = '[빈 응답]';
                     await new Promise((res) => setTimeout(res, 2000));
                 } catch (e) {
                     newTitle = '[변환 실패]';
-                    console.log(`newTitle = '[변환 실패]'`);
+                    logWithTime(`newTitle = '[변환 실패]'`);
                     console.error('Gemini newTitle 변환 실패:', e);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n\n`;
                     if (!fs.existsSync('error-log')) {
@@ -145,7 +163,7 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                 }
             } else {
                 newTitle = '[제목 없음]';
-                console.log(`title parsing에 실패해서 newTitle = '[제목 없음]' ${link}`);
+                logWithTime(`title parsing에 실패해서 newTitle = '[제목 없음]' ${link}`);
             }
 
             //본문 가공
@@ -172,8 +190,7 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                             - 답변은 반드시 위 JSON 배열 형식으로만 출력. 다른 설명이나 불필요한 텍스트는 절대 넣지 마\n
                             원본: ${article}
                             `;
-
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text().trim();
                     try {
                         newArticle = JSON.parse(raw);
@@ -183,12 +200,13 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                             newArticle = JSON.parse(match[0]);
                         } else {
                             newArticle = '[변환 실패]';
+                            logWithTime('JSON parsing failed. Raw:', raw);
                         }
                     }
                     await new Promise((res) => setTimeout(res, 2000));
                 } catch (e) {
                     newArticle = '[변환 실패]';
-                    console.log(`newArticle = '[변환 실패]'`);
+                    logWithTime(`newArticle = '[변환 실패]'`);
                     console.error('Gemini newArticle 변환 실패:', e);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n\n`;
                     if (!fs.existsSync('error-log')) {
@@ -198,7 +216,7 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                 }
             } else {
                 newArticle = '[본문 없음]';
-                console.log(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
+                logWithTime(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
             }
 
             //해시태그 생성
@@ -209,7 +227,7 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                             - '#해시태그1 #해시태그2 #해시태그3' 형태로 만들어줘.\n\n
                             - 답변은 내가 요청한 형태로만 대답해줘. 바로 복사해서 사용할꺼니까\n\n
                             - 기사: ${article}\n\n:`;
-                    const result = await model.generateContent(prompt);
+                    const result = await generateContentWithRetry(model, prompt);
                     hashTag = result.response.text().trim().split(/\s+/);
                     await new Promise((res) => setTimeout(res, 2000));
                     if (
@@ -223,7 +241,7 @@ const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
                     }
                 } catch (e) {
                     hashTag = [];
-                    console.log(`hashTag = '[생성 실패]' ${link}`);
+                    logWithTime(`hashTag = '[생성 실패]' ${link}`);
                     const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });

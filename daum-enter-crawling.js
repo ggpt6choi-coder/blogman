@@ -193,14 +193,27 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text().trim();
                     try {
+                        // 1. Try parsing raw directly
                         newArticle = JSON.parse(raw);
                     } catch (jsonErr) {
-                        const match = raw.match(/\[.*\]/s);
-                        if (match) {
-                            newArticle = JSON.parse(match[0]);
-                        } else {
-                            newArticle = '[변환 실패]';
-                            logWithTime('JSON parsing failed. Raw:', raw);
+                        // 2. Try cleaning markdown code blocks
+                        let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+                        try {
+                            newArticle = JSON.parse(cleanRaw);
+                        } catch (e2) {
+                            // 3. Try extracting array with regex
+                            const match = cleanRaw.match(/\[.*\]/s);
+                            if (match) {
+                                try {
+                                    newArticle = JSON.parse(match[0]);
+                                } catch (e3) {
+                                    newArticle = '[변환 실패]';
+                                    console.log('JSON parsing failed even with regex match. Raw:', raw);
+                                }
+                            } else {
+                                newArticle = '[변환 실패]';
+                                console.log('JSON parsing failed. Raw:', raw);
+                            }
                         }
                     }
                     await new Promise((res) => setTimeout(res, 2000));

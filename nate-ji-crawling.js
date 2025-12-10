@@ -41,7 +41,9 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     const dateStr = `${yyyy}${mm}${dd}`;
 
     logWithTime('크롤링 시작', '⏰');
+    let stopCrawling = false;
     for (const sc of scList) {
+        if (stopCrawling) break;
         const page = await browser.newPage();
         await page.setExtraHTTPHeaders({ 'User-Agent': userAgent });
         // 광고/트래킹/이미지 등 불필요한 리소스 요청 차단
@@ -73,6 +75,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
         let count = 0;
         for (const link of links) {
+            if (stopCrawling) break;
             if (count > 2) break; // 최대 3개 뉴스만 처리
             count++;
             const newPage = await browser.newPage();
@@ -105,8 +108,10 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
 
             // 캡차 감지 시 즉시 중단
             if (await newPage.$('input[type="checkbox"][name*="captcha"], .g-recaptcha, iframe[src*="recaptcha"]')) {
-                logWithTime('CAPTCHA 감지됨. 크롤링 중단.');
-                process.exit(1);
+                logWithTime('CAPTCHA 감지됨. 크롤링 중단하고 현재까지 데이터 저장.');
+                stopCrawling = true;
+                await newPage.close();
+                break;
             }
 
             // 제목 크롤링
@@ -230,14 +235,27 @@ ${article}
                     const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text().trim();
                     try {
+                        // 1. Try parsing raw directly
                         newArticle = JSON.parse(raw);
                     } catch (jsonErr) {
-                        const match = raw.match(/\[.*\]/s);
-                        if (match) {
-                            newArticle = JSON.parse(match[0]);
-                        } else {
-                            newArticle = '[변환 실패]';
-                            logWithTime('JSON parsing failed. Raw:', raw);
+                        // 2. Try cleaning markdown code blocks
+                        let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+                        try {
+                            newArticle = JSON.parse(cleanRaw);
+                        } catch (e2) {
+                            // 3. Try extracting array with regex
+                            const match = cleanRaw.match(/\[.*\]/s);
+                            if (match) {
+                                try {
+                                    newArticle = JSON.parse(match[0]);
+                                } catch (e3) {
+                                    newArticle = '[변환 실패]';
+                                    console.log('JSON parsing failed even with regex match. Raw:', raw);
+                                }
+                            } else {
+                                newArticle = '[변환 실패]';
+                                console.log('JSON parsing failed. Raw:', raw);
+                            }
                         }
                     }
                     await new Promise((res) => setTimeout(res, 2000));

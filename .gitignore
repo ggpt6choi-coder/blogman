@@ -45,3 +45,5 @@ mk-news.json
 .gemini-error.log
 .naver-upload-error.log
 *.txt
+
+naver_blog_editor_structure.md

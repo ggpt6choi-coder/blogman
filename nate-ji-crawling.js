@@ -160,37 +160,108 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     logWithTime(`article = '[본문 없음]' ${link} `);
                 }
             }
-            // Gemini API로 제목 변환
+            // Gemini API로 통합 가공 (제목, 본문, 해시태그)
             let newTitle = '';
-            if (title !== '[제목 없음]') {
+            let newArticle = '';
+            let hashTag = [];
+
+            if (article !== '[본문 없음]' && article.length !== 0 && title !== '[제목 없음]') {
                 try {
                     const prompt = `
-뉴스 제목을 네이버 블로그 검색에 최적화된 형태로 자연스럽게 다시 작성해줘.
+                    다음 뉴스 기사를 바탕으로 네이버 블로그 포스팅을 위한 데이터를 생성해줘.
+                    결과는 반드시 아래의 JSON 포맷으로만 출력해줘. 다른 말은 절대 하지 마.
 
-조건:
-- 광고·선정적 표현·과장 표현 완전 배제
-- 따옴표(" '), 대괄호([ ]), 화살표(→), 특수문자(★ 등) 모두 제외
-- 핵심 키워드를 반드시 포함하되 문장이 부드럽게 이어지도록 구성
-- 길이는 30~45자로 맞추기
-- 기사 내용을 참고해 제목의 의미를 보완
-- 불필요한 부사·감탄사는 넣지 않기
-- 결과는 제목 한 줄만 출력
+                    {
+                        "newTitle": "블로그용 제목",
+                        "newArticle": [
+                            {"title": "소제목1", "content": "내용1"},
+                            {"title": "소제목2", "content": "내용2"}
+                        ],
+                        "hashTag": ["#태그1", "#태그2", ...]
+                    }
 
-원본 제목: ${title}
-기사 내용: ${article}
-`;
+                    [작성 조건]
+                    1. newTitle (제목):
+                        - 네이버 블로그 검색 최적화된 제목 (30~45자)
+                        - 광고, 논란, 자극적 표현 제외
+                        - 따옴표, 대괄호, 특수문자 제거
+                        - 뉴스 핵심 키워드를 포함한 자연스러운 설명형 문장
 
+                    2. newArticle (본문):
+                        - 기사 내용을 핵심 주제별로 4~7개의 문단으로 나누어 구성
+                        - 각 소제목(title)은 핵심 키워드 포함 10자 이내
+                        - 각 내용(content)은 300~700자 사이의 자연스러운 하나의 문단 (줄바꿈, 리스트, 마크업 금지)
+                        - 전체 글 분량은 약 1500자 이상
+                        - 마지막 문단의 title은 반드시 '개인적인 생각'으로 하고, 기사 내용에 대한 견해와 시사점을 분석적으로 작성
+                        - SEO를 위해 핵심 키워드가 문장 내에 자연스럽게 반복되도록 작성
+                        - 기사와 관련 없는 광고, 기자 정보 등 제거
 
+                    3. hashTag (해시태그):
+                        - 네이버 검색 알고리즘에 최적화된 해시태그 5개 이상 10개 미만
+                        - '#태그명' 형태의 문자열 배열
+
+                    [입력 데이터]
+                    - 원본 제목: ${title}
+                    - 기사 내용: ${article}
+                    `;
 
                     const result = await generateContentWithRetry(model, prompt);
-                    const raw = result.response.text();
-                    newTitle = raw.trim();
-                    if (!newTitle) newTitle = '[빈 응답]';
+                    const raw = result.response.text().trim();
+
+                    let parsedData = null;
+                    try {
+                        // 1. Try parsing raw directly
+                        parsedData = JSON.parse(raw);
+                    } catch (jsonErr) {
+                        // 2. Try cleaning markdown code blocks
+                        let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+                        try {
+                            parsedData = JSON.parse(cleanRaw);
+                        } catch (e2) {
+                            // 3. Try extracting json object with regex
+                            const match = cleanRaw.match(/\{[\s\S]*\}/);
+                            if (match) {
+                                try {
+                                    parsedData = JSON.parse(match[0]);
+                                } catch (e3) {
+                                    console.log('JSON parsing failed even with regex match. Raw:', raw);
+                                }
+                            } else {
+                                console.log('JSON parsing failed. Raw:', raw);
+                            }
+                        }
+                    }
+
+                    if (parsedData) {
+                        newTitle = parsedData.newTitle || '[변환 실패]';
+                        newArticle = parsedData.newArticle || '[변환 실패]';
+                        hashTag = parsedData.hashTag || [];
+
+                        // 해시태그 유효성 검사 (기존 로직 유지)
+                        if (Array.isArray(hashTag)) {
+                            const invalidTags = ['본문', '#해시태그2', '알고리즘', '최적', '드리겠습니다.'];
+                            if (hashTag.some(tag => invalidTags.some(invalid => tag.includes(invalid)))) {
+                                hashTag = [];
+                            }
+                        } else {
+                            hashTag = [];
+                        }
+
+                    } else {
+                        newTitle = '[변환 실패]';
+                        newArticle = '[변환 실패]';
+                        hashTag = [];
+                        logWithTime(`JSON parsing failed completely for ${link}`);
+                    }
+
                     await new Promise((res) => setTimeout(res, 2000));
+
                 } catch (e) {
                     newTitle = '[변환 실패]';
-                    logWithTime(`newTitle = '[변환 실패]'`);
-                    const errorLog = `[${new Date().toISOString()}] [Gemini newTitle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
+                    newArticle = '[변환 실패]';
+                    hashTag = [];
+                    logWithTime(`Gemini processing failed for ${link}`);
+                    const errorLog = `[${new Date().toISOString()}] [Gemini 통합 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
                     if (!fs.existsSync('error-log')) {
                         fs.mkdirSync('error-log', { recursive: true });
                     }
@@ -198,119 +269,9 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                 }
             } else {
                 newTitle = '[제목 없음]';
-                logWithTime(`title parsing에 실패해서 newTitle = '[제목 없음]' ${link}`);
-            }
-            // Gemini API로 본문 재가공
-            let newArticle = '';
-            if (article !== '[본문 없음]' && article.length !== 0) {
-                try {
-                    const prompt = `
-아래 기사 내용을 기반으로 네이버 블로그 검색에 잘 노출될 수 있도록 글을 재구성해줘.
-출력은 아래 JSON 배열 형식으로만 작성해.
-
-[
-{"title": "소제목1", "content": "내용1"},
-{"title": "소제목2", "content": "내용2"}
-]
-
-조건:
-- 기사 핵심 정보 중심으로 4~7개 문단으로 구성
-- 소제목(title)은 10자 이내, 핵심 키워드 포함, 직관적 표현
-- 내용(content)은 문단별 300~700자 사이, 자연스럽고 매끄럽게 연결
-- 전체 글 길이는 1500자 이상
-- 마지막 소제목은 반드시 "개인적인 생각"
-- SEO를 위해 핵심 키워드를 문단별 2~3회 자연스럽게 반복
-- 기자명, 매체명, 광고성 문장, URL, 사진 관련 문구 등은 완전 제거
-- content에 소제목 포함 금지
-- JSON 외 다른 텍스트 절대 출력 금지 (설명 문구·코드블록 금지)
-- 맞춤법과 문장 흐름은 블로그 스타일로 자연스럽게
-
-원본 기사:
-${article}
-`;
-
-
-
-
-                    const result = await generateContentWithRetry(model, prompt);
-                    const raw = result.response.text().trim();
-                    try {
-                        // 1. Try parsing raw directly
-                        newArticle = JSON.parse(raw);
-                    } catch (jsonErr) {
-                        // 2. Try cleaning markdown code blocks
-                        let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-                        try {
-                            newArticle = JSON.parse(cleanRaw);
-                        } catch (e2) {
-                            // 3. Try extracting array with regex
-                            const match = cleanRaw.match(/\[.*\]/s);
-                            if (match) {
-                                try {
-                                    newArticle = JSON.parse(match[0]);
-                                } catch (e3) {
-                                    newArticle = '[변환 실패]';
-                                    console.log('JSON parsing failed even with regex match. Raw:', raw);
-                                }
-                            } else {
-                                newArticle = '[변환 실패]';
-                                console.log('JSON parsing failed. Raw:', raw);
-                            }
-                        }
-                    }
-                    await new Promise((res) => setTimeout(res, 2000));
-                } catch (e) {
-                    newArticle = '[변환 실패]';
-                    logWithTime(`newArticle = '[변환 실패]'`);
-                    const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
-                    if (!fs.existsSync('error-log')) {
-                        fs.mkdirSync('error-log', { recursive: true });
-                    }
-                    fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
-                }
-            } else {
                 newArticle = '[본문 없음]';
-                logWithTime(`article parsing에 실패해서 newArticle = '[본문 없음]' ${link}`);
-            }
-
-            // Gemini API로 해시태그 생성
-            let hashTag = '';
-            if (article !== '[본문 없음]' && article.length !== 0) {
-                try {
-                    const prompt = `
-아래 기사 내용을 참고해 네이버 검색에 적합한 해시태그를 5개 이상 10개 미만으로 생성해줘.
-
-조건:
-- '#태그1 #태그2 #태그3' 형태로 한 줄만 출력
-- 복사해서 바로 쓸 수 있도록 해시태그 문자열만 출력
-- 기사 핵심 키워드 중심으로 단어만 사용 (문장 금지)
-- 과도하게 긴 단어, 중복된 의미의 태그 제외
-
-기사 내용: ${article}
-`;
-
-
-                    const result = await generateContentWithRetry(model, prompt);
-                    hashTag = result.response.text().trim().split(/\s+/);
-                    await new Promise((res) => setTimeout(res, 2000));
-                    if (
-                        hashTag.includes('본문') ||
-                        hashTag.includes('#해시태그2') ||
-                        hashTag.includes('알고리즘') ||
-                        hashTag.includes('최적') ||
-                        hashTag.includes('드리겠습니다.')
-                    ) {
-                        hashTag = [];
-                    }
-                } catch (e) {
-                    hashTag = [];
-                    logWithTime(`hashTag = '[생성 실패]' ${link}`);
-                    const errorLog = `[${new Date().toISOString()}] [Gemini newArticle 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
-                    if (!fs.existsSync('error-log')) {
-                        fs.mkdirSync('error-log', { recursive: true });
-                    }
-                    fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
-                }
+                hashTag = [];
+                logWithTime(`Skipping Gemini: Missing title or article for ${link}`);
             }
             // 모든 결과 저장 (실패/빈 값 포함)
             if (
@@ -330,8 +291,9 @@ ${article}
                 });
             }
             await newPage.close();
-            // 요청 간 5~15초 랜덤 지연 (테스트 목적)
-            await delay(5000 + Math.random() * 10000);
+            // 10 RPM 제한 준수를 위한 지연 (기사당 1회 호출하므로, 기사당 최소 6초 이상 소요되어야 함)
+            // 기존 5~15초 -> 6~10초로 변경 (속도 최적화)
+            await delay(6000 + Math.random() * 4000);
         }
         await page.close();
     }

@@ -171,7 +171,7 @@ async function writeBlog({
     if (thoughtIndex > 0) {
       const [thoughtSection] = content.splice(thoughtIndex, 1);
       content.unshift(thoughtSection);
-      console.log(`'개인적인 생각' 섹션을 맨 앞으로 이동했습니다.`);
+
     }
 
     for (const section of content) {
@@ -193,7 +193,7 @@ async function writeBlog({
 
       // 🔄 '개인적인 생각' 섹션 작성 후 제품 URL 삽입
       if (section.title && section.title.includes('개인적인 생각')) {
-        console.log("'개인적인 생각' 작성 완료. 제품 URL을 삽입합니다.");
+
         await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
         await frame.waitForTimeout(2000);
       }
@@ -258,7 +258,7 @@ async function writeBlog({
 
       if (repBtn) {
         await repBtn.click();
-        console.log('캐릭터 이미지를 대표 이미지로 설정했습니다.');
+
       } else {
         // 클래스로 못 찾으면 텍스트로 시도
         const buttons = await frame.$$('button');
@@ -266,7 +266,7 @@ async function writeBlog({
           const text = await btn.textContent();
           if (text && text.includes('대표')) {
             await btn.click();
-            console.log('캐릭터 이미지를 대표 이미지로 설정했습니다. (텍스트 매칭)');
+
             break;
           }
         }
@@ -342,10 +342,10 @@ async function writeBlog({
   const createdTime = new Date(timeData.created);
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  // if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-  //   console.log('실행 조건 불만족: nate_time_check.json의 created 값이 2시간 이내가 아닙니다.');
-  //   process.exit(0);
-  // }
+  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+    logWithTime('실행 조건 불만족: nate-ji_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌');
+    process.exit(0);
+  }
 
   //시작
   const browser = await chromium.launch({

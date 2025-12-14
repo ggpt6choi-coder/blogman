@@ -191,11 +191,11 @@ async function writeBlog({
       await frame.waitForTimeout(100);
 
       // 🔄 '개인적인 생각' 섹션 작성 후 제품 URL 삽입
-      if (section.title && section.title.includes('개인적인 생각')) {
+      // if (section.title && section.title.includes('개인적인 생각')) {
 
-        await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-        await frame.waitForTimeout(2000);
-      }
+      //   await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+      //   await frame.waitForTimeout(2000);
+      // }
     }
   } else if (typeof content === 'string') {
     // 본문 길면 오류나는거 방지 차원에서 본문 반틈 나눠서 작성
@@ -218,15 +218,15 @@ async function writeBlog({
   }
 
   // 링크 카드 삽입 (하단)
-  await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-  await frame.waitForTimeout(2000);
-  await page.keyboard.press('Enter');
+  // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+  // await frame.waitForTimeout(2000);
+  // await page.keyboard.press('Enter');
 
-  const spans = await frame.$$(contentSpanSelector);
-  const lastSpan = spans[spans.length - 1];
-  if (lastSpan) {
-    await lastSpan.type(hashTag.join(' '), { delay: 80 });
-  }
+  // const spans = await frame.$$(contentSpanSelector);
+  // const lastSpan = spans[spans.length - 1];
+  // if (lastSpan) {
+  //   await lastSpan.type(hashTag.join(' '), { delay: 80 });
+  // }
 
   // 📸 캐릭터 이미지 업로드 및 대표 이미지 설정
   try {

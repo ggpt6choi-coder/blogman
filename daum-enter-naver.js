@@ -229,7 +229,7 @@ async function writeBlog({
   // 📸 캐릭터 이미지 업로드 및 대표 이미지 설정
   try {
     const path = require('path');
-    const charImagePath = path.resolve('image/character_cake.png');
+    const charImagePath = path.resolve(`image/${blogName}/${new Date().getDay()}.png`);
 
     // 파일 선택창 대기
     const fileChooserPromise = page.waitForEvent('filechooser');

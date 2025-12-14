@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
+const { generateThumbnail } = require('./image-generator');
 const fetch = require("node-fetch");
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
@@ -94,6 +95,15 @@ async function writeBlog({
   type,
   idx = 0, // 예약 간격을 위한 인덱스(기본값 0)
 }) {
+  // 📸 썸네일 생성 (글쓰기 페이지 이동 전)
+  const path = require('path');
+  const thumbnailPath = path.resolve(`image/thumbnail_${Date.now()}.png`);
+  try {
+    await generateThumbnail(page, title, thumbnailPath);
+  } catch (genErr) {
+    console.log('썸네일 생성 실패:', genErr.message);
+  }
+
   // 글쓰기 페이지 이동
   await page.goto(`https://blog.naver.com/${blogName}?Redirect=Write`);
 
@@ -152,9 +162,19 @@ async function writeBlog({
     await frame.click('button.se-image-toolbar-button');
 
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(imagePath);
+    await fileChooser.setFiles(thumbnailPath);
 
     await frame.waitForTimeout(2000); // 업로드 대기
+
+    // 🗑️ 썸네일 파일 삭제
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(thumbnailPath)) {
+        fs.unlinkSync(thumbnailPath);
+      }
+    } catch (delErr) {
+      console.log('썸네일 삭제 실패:', delErr.message);
+    }
     // await page.keyboard.press('Enter'); // 줄바꿈
   } catch (e) {
     console.log('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
@@ -222,11 +242,13 @@ async function writeBlog({
   // await frame.waitForTimeout(2000);
   // await page.keyboard.press('Enter');
 
-  // const spans = await frame.$$(contentSpanSelector);
-  // const lastSpan = spans[spans.length - 1];
-  // if (lastSpan) {
-  //   await lastSpan.type(hashTag.join(' '), { delay: 80 });
-  // }
+  // 해시태그 입력 (본문 맨 끝)
+  if (hashTag && hashTag.length > 0) {
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    await frame.type(contentSpanSelector, hashTag.join(' '), { delay: 80 });
+    await page.keyboard.press('Enter');
+  }
 
   // 📸 캐릭터 이미지 업로드 및 대표 이미지 설정
   try {
@@ -244,12 +266,12 @@ async function writeBlog({
 
     await frame.waitForTimeout(3000); // 업로드 대기
 
-    // 업로드된 이미지 선택 (마지막 이미지)
-    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 마지막 것
+    // 업로드된 이미지 선택 (첫 번째 이미지 - 썸네일)
+    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 첫 번째 것
     const images = await frame.$$('.se-module-image');
     if (images.length > 0) {
-      const lastImage = images[images.length - 1];
-      await lastImage.click();
+      const firstImage = images[0];
+      await firstImage.click();
       await frame.waitForTimeout(1000);
 
       // 대표 이미지 버튼 클릭
@@ -285,11 +307,18 @@ async function writeBlog({
   await frame.waitForSelector(publishBtnSelector, { timeout: 10000 });
   await frame.click(publishBtnSelector);
 
-  // 2. #radio_time2 라디오버튼 등장 시 클릭 (frame context)
-  await frame.waitForSelector('#radio_time2', { timeout: 10000 });
-  await frame.evaluate(() => {
-    document.querySelector('#radio_time2')?.click();
-  });
+  // 2. 예약 설정
+  // #radio_time2 대신 '예약' 텍스트가 있는 라벨이나 버튼을 찾아서 클릭
+  try {
+    const reservationLabel = frame.locator('label', { hasText: '예약' }).last();
+    await reservationLabel.click();
+  } catch (e) {
+    // 실패 시 기존 ID 방식 시도
+    await frame.click('#radio_time2');
+  }
+  await frame.waitForTimeout(500); // UI 반영 대기
+
+
 
   // 3. 시간설정 (2개씩 같은 시간)
   const group = Math.floor(idx / 2);
@@ -331,8 +360,9 @@ async function writeBlog({
   );
 
   // 발행버튼 클릭
-  await frame.waitForSelector('.confirm_btn__WEaBq', { timeout: 10000 });
-  await frame.click('.confirm_btn__WEaBq');
+  const finalPublishBtnSelector = 'div.layer_btn_area__UzyKH > div > button';
+  await frame.waitForSelector(finalPublishBtnSelector, { timeout: 10000 });
+  await frame.click(finalPublishBtnSelector);
 }
 
 // ==========================
@@ -364,6 +394,11 @@ async function writeBlog({
   // navigator.webdriver 제거 (로봇 탐지 우회)
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
+  // 팝업/알림창 자동 수락
+  page.on('dialog', async dialog => {
+    console.log(`Dialog detected: ${dialog.message()}`);
+    await dialog.accept();
   });
   logWithTime('시작');
   await naverLogin(page);

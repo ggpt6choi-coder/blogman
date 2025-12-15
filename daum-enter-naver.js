@@ -380,7 +380,6 @@ async function writeBlog({
   });
   // 팝업/알림창 자동 수락
   page.on('dialog', async dialog => {
-    console.log(`Dialog detected: ${dialog.message()}`);
     await dialog.accept();
   });
   logWithTime('시작');

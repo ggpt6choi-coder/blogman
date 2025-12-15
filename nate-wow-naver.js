@@ -388,7 +388,6 @@ async function writeBlog({
   });
   // 팝업/알림창 자동 수락 (페이지 이동 시 '저장하지 않고 나가시겠습니까?' 등 방지)
   page.on('dialog', async dialog => {
-    console.log(`Dialog detected: ${dialog.message()}`);
     await dialog.accept();
   });
   logWithTime('시작');

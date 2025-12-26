@@ -1,8 +1,8 @@
 name: coupang [******cake]
 
 on:
-  schedule:
-    - cron: '0 23 * * *'   # 오전 9시 (KST)
+  # schedule:
+    # - cron: '0 23 * * *'   # 오전 9시 (KST)
     
   workflow_dispatch:
 
@@ -51,7 +51,8 @@ jobs:
       - name: Run coupang.js
         run: node coupang.js > coupang_log.txt 2>&1
         env:
-          GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
+          COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
+          COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts

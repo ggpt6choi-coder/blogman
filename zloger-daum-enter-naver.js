@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
 const path = require('path');
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
@@ -260,12 +260,7 @@ async function writeBlog({
   // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
   // await frame.waitForTimeout(2000);
 
-  if (coupangLink) {
-    const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
-    await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
-    await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
-    await frame.waitForTimeout(2000);
-  }
+
 
   if (Array.isArray(content)) {
     // 🔄 '개인적인 생각' 섹션을 맨 앞으로 이동 (강제 적용)
@@ -275,7 +270,17 @@ async function writeBlog({
       content.unshift(thoughtSection);
     }
 
-    for (const section of content) {
+    for (const [i, section] of content.entries()) {
+      // 1번째(인덱스 0), 3번째(인덱스 2) 문단 체크
+      if (i === 1 || i === 3) {
+        if (coupangLink) {
+          const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+          await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
+          await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
+          await frame.waitForTimeout(2000);
+        }
+      }
+
       if (section.title) {
         await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
         await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
@@ -299,22 +304,6 @@ async function writeBlog({
       //   await frame.waitForTimeout(2000);
       // }
     }
-  } else if (typeof content === 'string') {
-    // 기존 string 방식 하위 호환
-    const half = Math.floor(content.length / 2);
-    const firstHalf = content.slice(0, half);
-    const secondHalf = content.slice(half);
-    await frame.type(contentSpanSelector, firstHalf, { delay: 10 });
-    await frame.waitForTimeout(200);
-    await frame.type(contentSpanSelector, secondHalf, { delay: 10 });
-    await page.keyboard.press('Enter');
-    await frame.waitForTimeout(300);
-    await page.keyboard.press('Enter');
-    await frame.waitForTimeout(300);
-    await page.keyboard.press('Enter');
-    await frame.waitForTimeout(300);
-    await page.keyboard.press('Enter');
-    await frame.waitForTimeout(300);
   }
 
   // 링크 카드 삽입 (하단)
@@ -449,10 +438,10 @@ async function writeBlog({
   const createdTime = new Date(timeData.created);
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
-    process.exit(0);
-  }
+  // if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+  //   logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
+  //   process.exit(0);
+  // }
 
   //시작
   const browser = await chromium.launch({

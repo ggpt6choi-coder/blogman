@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
 const path = require('path');
-const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
@@ -438,10 +438,10 @@ async function writeBlog({
   const createdTime = new Date(timeData.created);
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  // if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-  //   logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
-  //   process.exit(0);
-  // }
+  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+    logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
+    process.exit(0);
+  }
 
   //시작
   const browser = await chromium.launch({

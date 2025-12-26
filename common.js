@@ -167,7 +167,24 @@ const writeStyledLink = async (page, frame, text, url) => {
       console.log('글자 색상 변경 실패:', e.message);
     }
 
-    // 4. 가운데 정렬
+    // 4. 글자 배경색 변경 (연한 노랑 #fff593)
+    try {
+      const bgColorBtn = await frame.$('button.se-background-color-toolbar-button');
+      if (bgColorBtn) {
+        await bgColorBtn.click();
+        await frame.waitForTimeout(300);
+
+        const yellowBgBtn = await frame.$('button.se-color-palette[data-color="#fff593"]');
+        if (yellowBgBtn) {
+          await yellowBgBtn.click();
+        }
+        await frame.waitForTimeout(200);
+      }
+    } catch (e) {
+      console.log('글자 배경색 변경 실패:', e.message);
+    }
+
+    // 5. 가운데 정렬
     try {
       const alignCenterBtn = await frame.$('button.se-align-center-toolbar-button');
       if (alignCenterBtn) {
@@ -280,7 +297,21 @@ const resetStyle = async (frame) => {
       }
     } catch (e) { }
 
-    // 2. 글자 크기 복구 (15px)
+    // 2. 글자 배경색 초기화 (색상 없음)
+    try {
+      const bgColorBtn = await frame.$('button.se-background-color-toolbar-button');
+      if (bgColorBtn) {
+        await bgColorBtn.click();
+        await frame.waitForTimeout(100);
+        const noColorBtn = await frame.$('button.se-color-palette-no-color');
+        if (noColorBtn) {
+          await noColorBtn.click();
+        }
+        await frame.waitForTimeout(100);
+      }
+    } catch (e) { }
+
+    // 3. 글자 크기 복구 (15px)
     try {
       const fontSizeBtnSelector = 'li.se-toolbar-item-font-size-code button';
       // 툴바 버튼 찾기 시도
@@ -308,7 +339,7 @@ const resetStyle = async (frame) => {
       }
     } catch (e) { }
 
-    // 3. 굵게 해제 (se-is-selected 클래스 확인)
+    // 4. 굵게 해제 (se-is-selected 클래스 확인)
     try {
       const boldBtnSelector = 'li.se-toolbar-item-bold button';
       const boldBtn = await frame.$(boldBtnSelector);
@@ -321,7 +352,7 @@ const resetStyle = async (frame) => {
       }
     } catch (e) { }
 
-    // 4. 왼쪽 정렬 (기본값 복구)
+    // 5. 왼쪽 정렬 (기본값 복구)
     try {
       // 정렬 메뉴 열기 (필요시)
       const alignDropdownSelector = 'li.se-toolbar-item-align > div > button';

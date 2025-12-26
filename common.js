@@ -88,4 +88,263 @@ const getAdItemLink = async () => {
   }
 };
 
-module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink };
+
+//✅ 문구와 URL을 입력받아 스타일 적용 후 링크 삽입하는 함수
+const writeStyledLink = async (page, frame, text, url) => {
+  // 텍스트 입력
+  await page.keyboard.type(text, { delay: 50 });
+  await frame.waitForTimeout(200);
+
+  // 텍스트 선택 (Shift + Home)
+  await page.keyboard.down('Shift');
+  await page.keyboard.press('Home');
+  await page.keyboard.up('Shift');
+  await frame.waitForTimeout(300);
+
+  // [스타일 적용] 굵게 / 글자 크기 / 색상 / 가운데 정렬
+  try {
+    console.log('스타일 적용 시작');
+
+    // 1. 굵게 (Cmd+B)
+    await page.keyboard.down('Meta');
+    await page.keyboard.press('b');
+    await page.keyboard.up('Meta');
+    await frame.waitForTimeout(200);
+
+    // 2. 글자 크기 키우기 (34px)
+    // 툴바에서 글자 크기 버튼 찾기
+    try {
+      // 유저 제보: li.se-toolbar-item-font-size-code > div > button
+      const fontSizeBtnSelector = 'li.se-toolbar-item-font-size-code button';
+      const fontSizeBtn = await frame.$(fontSizeBtnSelector);
+
+      if (fontSizeBtn) {
+        await fontSizeBtn.click();
+        await frame.waitForTimeout(300);
+
+        // 34px 선택 (se-toolbar-option-font-size-code-fs34-button)
+        const sizeOptionSelector = 'button.se-toolbar-option-font-size-code-fs34-button';
+        const sizeOption = await frame.$(sizeOptionSelector);
+
+        if (sizeOption) {
+          await sizeOption.click();
+        } else {
+          // 혹시 클래스명이 다를 수 있으니 fs34 포함하는거 찾기
+          const fallbackOption = await frame.$('button[class*="fs34"]');
+          if (fallbackOption) await fallbackOption.click();
+        }
+        await frame.waitForTimeout(200);
+      } else {
+        // 기존 셀렉터 fallback
+        const oldBtn = await frame.$('button.se-font-size-toolbar-button');
+        if (oldBtn) await oldBtn.click();
+      }
+    } catch (e) {
+      console.log('글자 크기 변경 실패:', e.message);
+    }
+
+    // 3. 글자 색상 변경 (빨강색 #ff0010)
+    try {
+      const colorBtn = await frame.$('button.se-font-color-toolbar-button');
+      if (colorBtn) {
+        await colorBtn.click();
+        await frame.waitForTimeout(300);
+
+        // 유저 제보: button.se-color-palette[data-color="#ff0010"]
+        const redColorSelector = 'button.se-color-palette[data-color="#ff0010"]';
+        const redColorBtn = await frame.$(redColorSelector);
+
+        if (redColorBtn) {
+          await redColorBtn.click();
+        } else {
+          // 못 찾으면 기존 방식(2번째)
+          const colorOptions = await frame.$$('.se-popup-color-layer button');
+          if (colorOptions.length > 1) await colorOptions[1].click();
+        }
+        await frame.waitForTimeout(200);
+      }
+    } catch (e) {
+      console.log('글자 색상 변경 실패:', e.message);
+    }
+
+    // 4. 가운데 정렬
+    try {
+      const alignCenterBtn = await frame.$('button.se-align-center-toolbar-button');
+      if (alignCenterBtn) {
+        await alignCenterBtn.click();
+      } else {
+        // 그룹 안에 있을 경우
+        const alignGroupBtn = await frame.$('button.se-align-group-toggle-toolbar-button');
+        if (alignGroupBtn) {
+          await alignGroupBtn.click();
+          await frame.waitForTimeout(300);
+          const realCenterBtn = await frame.$('button.se-align-center-toolbar-button');
+          if (realCenterBtn) await realCenterBtn.click();
+        }
+      }
+      await frame.waitForTimeout(200);
+    } catch (e) {
+      console.log('가운데 정렬 실패:', e.message);
+    }
+
+  } catch (e) {
+    console.log('스타일 적용 중 오류:', e.message);
+  }
+
+  // 링크 삽입 시도
+  try {
+    // 툴바의 링크 버튼 찾기
+    const linkBtnSelector = '.se-l-property-toolbar .se-toolbar-item-link button';
+    const linkBtn = await frame.$(linkBtnSelector);
+
+    if (linkBtn) {
+      console.log('링크 버튼 찾음, 클릭 시도');
+      await linkBtn.click();
+    } else {
+      console.log('링크 버튼 못 찾음, 단축키(Cmd+K) 시도');
+      await page.keyboard.down('Meta');
+      await page.keyboard.press('k');
+      await page.keyboard.up('Meta');
+    }
+
+    await frame.waitForTimeout(1000); // 팝업 대기
+
+    // 링크 입력창 대기
+    const linkInputSelector = '.se-toolbar-item-link input';
+    try {
+      await frame.waitForSelector(linkInputSelector, { timeout: 3000 });
+      console.log('링크 입력창 뜸');
+      await frame.type(linkInputSelector, url, { delay: 50 });
+      await page.keyboard.press('Enter'); // 링크 적용
+      await frame.waitForTimeout(500);
+
+      // 팝업 닫기 (혹시 남아있을 경우)
+      await page.keyboard.press('Escape');
+      await frame.waitForTimeout(300);
+
+      console.log('제품 링크 삽입 완료');
+    } catch (e) {
+      console.log('링크 입력창 Timeout:', e.message);
+      await page.keyboard.press('Escape');
+    }
+  } catch (e) {
+    console.log('링크 삽입 과정 중 오류:', e.message);
+  }
+
+  // 링크 삽입 후 다음 줄로 이동
+  await page.keyboard.press('Escape'); // 팝업 닫기 (안전장치)
+  await frame.waitForTimeout(200);
+
+  // [수정] 엔터 키가 선택된 텍스트를 지우는 문제 해결
+  // 대신 에디터 하단 여백을 클릭하여 강제로 새 줄 생성
+  try {
+    await frame.click('div.se-canvas-bottom', { force: true });
+    console.log('에디터 하단 클릭 (새 줄 생성)');
+  } catch (e) {
+    console.log('하단 클릭 실패, 엔터 시도:', e.message);
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+  }
+  await frame.waitForTimeout(500);
+
+  // 줄바꿈 확인을 위해 공백 하나 입력 (이미지 업로드 시 덮어쓰기 방지)
+  await page.keyboard.type(' ');
+  await frame.waitForTimeout(200);
+
+  // [추가] 원복 전에 엔터를 쳐서 다음 줄로 이동
+  await page.keyboard.press('Enter');
+  await frame.waitForTimeout(200);
+
+  // [스타일 원복]
+  await resetStyle(frame);
+};
+
+//✅ 스타일 초기화 함수 (검정색 / 15px / 굵게 해제 / 왼쪽 정렬)
+const resetStyle = async (frame) => {
+  try {
+    // 1. 글자 색상 복구 (검정색 #000000)
+    try {
+      const colorBtn = await frame.$('button.se-font-color-toolbar-button');
+      if (colorBtn) {
+        await colorBtn.click();
+        await frame.waitForTimeout(100);
+        const blackColorBtn = await frame.$('button.se-color-palette[data-color="#000000"]');
+        if (blackColorBtn) {
+          await blackColorBtn.click();
+        } else {
+          const colorOptions = await frame.$$('.se-popup-color-layer button');
+          if (colorOptions.length > 0) await colorOptions[0].click();
+        }
+        await frame.waitForTimeout(100);
+      }
+    } catch (e) { }
+
+    // 2. 글자 크기 복구 (15px)
+    try {
+      const fontSizeBtnSelector = 'li.se-toolbar-item-font-size-code button';
+      // 툴바 버튼 찾기 시도
+      let fontSizeBtn = await frame.$(fontSizeBtnSelector);
+      if (!fontSizeBtn) fontSizeBtn = await frame.$('button.se-font-size-toolbar-button');
+
+      if (fontSizeBtn) {
+        await fontSizeBtn.click();
+        await frame.waitForTimeout(100);
+        // 15px (se-toolbar-option-font-size-code-fs15-button or .se-toolbar-option-font-size-15)
+        const sizeOption15 = await frame.$('button.se-toolbar-option-font-size-code-fs15-button, button.se-toolbar-option-font-size-15');
+        if (sizeOption15) {
+          await sizeOption15.click();
+        } else {
+          // 텍스트로 찾기 (fallback)
+          const options = await frame.$$('ul.se-toolbar-list-font-size button');
+          for (const opt of options) {
+            if ((await opt.innerText()).trim() === '15') {
+              await opt.click();
+              break;
+            }
+          }
+        }
+        await frame.waitForTimeout(100);
+      }
+    } catch (e) { }
+
+    // 3. 굵게 해제 (se-is-selected 클래스 확인)
+    try {
+      const boldBtnSelector = 'li.se-toolbar-item-bold button';
+      const boldBtn = await frame.$(boldBtnSelector);
+      if (boldBtn) {
+        const classAttr = await boldBtn.getAttribute('class');
+        if (classAttr && classAttr.includes('se-is-selected')) {
+          await boldBtn.click();
+          await frame.waitForTimeout(100);
+        }
+      }
+    } catch (e) { }
+
+    // 4. 왼쪽 정렬 (기본값 복구)
+    try {
+      // 정렬 메뉴 열기 (필요시)
+      const alignDropdownSelector = 'li.se-toolbar-item-align > div > button';
+      const alignDropdownBtn = await frame.$(alignDropdownSelector);
+
+      // 왼쪽 정렬 버튼: se-toolbar-option-align-left-button
+      const alignLeftSelector = 'button.se-toolbar-option-align-left-button';
+
+      if (alignDropdownBtn) {
+        await alignDropdownBtn.click();
+        await frame.waitForTimeout(200);
+        const alignLeftBtn = await frame.$(alignLeftSelector);
+        if (alignLeftBtn) await alignLeftBtn.click();
+      } else {
+        // 이미 툴바에 나와있을 수도 있음
+        const alignLeftBtn = await frame.$(alignLeftSelector);
+        if (alignLeftBtn) await alignLeftBtn.click();
+      }
+    } catch (e) { }
+
+  } catch (e) {
+    console.log('스타일 원복 실패:', e.message);
+  }
+};
+
+module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, writeStyledLink, resetStyle };

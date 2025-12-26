@@ -1,8 +1,8 @@
-name: coupang [******cake]
+name: coupang
 
 on:
-  # schedule:
-    # - cron: '0 23 * * *'   # 오전 9시 (KST)
+  schedule:
+    - cron: '0 23 * * *'   # 오전 9시 (KST)
     
   workflow_dispatch:
 

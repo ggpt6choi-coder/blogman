@@ -1,7 +1,46 @@
-// import fetch from "node-fetch"; // Node.js 18 이상이면 전역 fetch 사용 가능
+const axios = require('axios');
 // const fs = require('fs');
 
-//✅ 로그 함수: 시간과 메시지 출력
+// ... (existing helper functions) ...
+
+const getCoupangLink = async () => {
+  const moment = require('moment');
+  let coupangShortenUrl = null;
+  let isCoupangToday = false;
+  const COUPANG_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/coupang.json';
+
+  try {
+    const response = await axios.get(COUPANG_JSON_URL);
+    // axios는 response.data에 바로 JSON 데이터가 있음
+    const coupangData = response.data;
+
+    if (coupangData && coupangData.length > 0) {
+      // 첫 번째 데이터 사용 (가장 최근 것)
+      const item = coupangData[0];
+      const executedDate = moment(item.executedAt).format('YYYY-MM-DD');
+      const todayDate = moment().format('YYYY-MM-DD');
+
+      if (executedDate === todayDate) {
+        isCoupangToday = true;
+        coupangShortenUrl = item.shortenUrl;
+        logWithTime(`[Coupang] 오늘 생성된 링크 발견: ${coupangShortenUrl}`);
+      } else {
+        logWithTime(`[Coupang] 오늘 날짜가 아님 (Executed: ${executedDate}, Today: ${todayDate})`);
+      }
+    } else {
+      logWithTime('[Coupang] 데이터가 비어있습니다.');
+    }
+  } catch (err) {
+    logWithTime(`[Coupang] 데이터 읽기 오류: ${err.message}`);
+  }
+
+  if (!isCoupangToday) {
+    logWithTime('쿠팡 실행 조건 불만족: 오늘 생성된 링크가 없습니다.', '❌')
+    process.exit(0);
+  }
+
+  return coupangShortenUrl;
+}
 const logWithTime = (message, sticker = '🤖') => {
   const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
   console.log(`${sticker}[${now}] ${message}`);
@@ -50,12 +89,8 @@ function isWithinLastHour(timestampStr) {
 const loadLinks = async () => {
   const url = "https://raw.githubusercontent.com/ggpt6choi-coder/blogman/refs/heads/main/adv-item-links.json";
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const response = await axios.get(url);
+    const data = response.data;
     return data.links; // JSON 구조에 따라 조정
   } catch (error) {
     console.error("Error loading links:", error);
@@ -123,7 +158,7 @@ const writeStyledLink = async (page, frame, text, url) => {
         await frame.waitForTimeout(300);
 
         // 34px 선택 (se-toolbar-option-font-size-code-fs34-button)
-        const sizeOptionSelector = 'button.se-toolbar-option-font-size-code-fs34-button';
+        const sizeOptionSelector = 'button.se-toolbar-option-font-size-code-fs19-button';
         const sizeOption = await frame.$(sizeOptionSelector);
 
         if (sizeOption) {
@@ -266,15 +301,12 @@ const writeStyledLink = async (page, frame, text, url) => {
   await frame.waitForTimeout(500);
 
   // 줄바꿈 확인을 위해 공백 하나 입력 (이미지 업로드 시 덮어쓰기 방지)
-  await page.keyboard.type(' ');
+  await page.keyboard.type('');
   await frame.waitForTimeout(200);
 
   // [추가] 원복 전에 엔터를 쳐서 다음 줄로 이동
   await page.keyboard.press('Enter');
   await frame.waitForTimeout(200);
-
-  // [스타일 원복]
-  await resetStyle(frame);
 };
 
 //✅ 스타일 초기화 함수 (검정색 / 15px / 굵게 해제 / 왼쪽 정렬)
@@ -378,4 +410,6 @@ const resetStyle = async (frame) => {
   }
 };
 
-module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, writeStyledLink, resetStyle };
+
+
+module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle };

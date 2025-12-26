@@ -1,10 +1,11 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime, getAdItemLink } = require('./common');
+const { logWithTime, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle } = require('./common');
 const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
+const path = require('path');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
@@ -96,7 +97,6 @@ async function writeBlog({
   idx = 0, // 예약 간격을 위한 인덱스(기본값 0)
 }) {
   // 📸 썸네일 생성 (글쓰기 페이지 이동 전)
-  const path = require('path');
   const thumbnailPath = path.resolve(`image/thumbnail_${Date.now()}.png`);
   try {
     await generateThumbnail(page, title, thumbnailPath);
@@ -151,9 +151,32 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
 
-  // 📸 이미지 업로드 (맨 위)
+  // 📸 공정위 이미지 업로드
+  const coupangLink = await getCoupangLink();
+
   try {
-    const path = require('path');
+    if (coupangLink) {
+      const sentenceImagePath = path.resolve('image/coupang-sentence.png');
+
+      // 파일 선택창 대기
+      const fileChooserPromise = page.waitForEvent('filechooser');
+
+      // '사진' 버튼 클릭
+      await frame.click('button.se-image-toolbar-button');
+
+      const fileChooser = await fileChooserPromise;
+      await fileChooser.setFiles(sentenceImagePath);
+
+      await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
+      // await page.keyboard.press('Enter'); // 줄바꿈
+      // await frame.waitForTimeout(500);
+    }
+  } catch (e) {
+    logWithTime('coupang-sentence.png 업로드 실패:', e.message);
+  }
+
+  // 📸 이미지 업로드
+  try {
     const imagePath = path.resolve('image/sentence.png');
 
     // 파일 선택창 대기
@@ -175,16 +198,74 @@ async function writeBlog({
         fs.unlinkSync(thumbnailPath);
       }
     } catch (delErr) {
-      console.log('썸네일 삭제 실패:', delErr.message);
+      logWithTime('썸네일 삭제 실패:', delErr.message);
+    }
+
+    // 📸 대표 이미지 설정 (썸네일 업로드 직후)
+    try {
+      // 업로드된 이미지 선택 (마지막 이미지 - 썸네일)
+      // se-image-container 또는 se-module-image 클래스를 가진 요소 중 마지막 것
+      const images = await frame.$$('.se-module-image');
+      logWithTime(`이미지 개수 확인(대표설정): ${images.length}`);
+
+      if (images.length > 0) {
+        // 가장 마지막에 업로드된 이미지가 썸네일임
+        const lastImage = images[images.length - 1];
+        await lastImage.click();
+        await frame.waitForTimeout(1000);
+
+        // 대표 이미지 버튼 클릭
+        // 툴바가 뜨면 '대표' 버튼을 찾음
+        const repBtnSelector = 'button.se-toolbar-option-visible-representative-button';
+        const repBtn = await frame.$(repBtnSelector);
+
+        if (repBtn) {
+          logWithTime('대표 버튼 찾음, 클릭');
+          await repBtn.click();
+        } else {
+          // 클래스로 못 찾으면 텍스트로 시도
+          const buttons = await frame.$$('button');
+          let clicked = false;
+          for (const btn of buttons) {
+            const text = await btn.textContent();
+            if (text && text.trim() === '대표') {
+              logWithTime('대표 버튼(텍스트) 찾음, 클릭');
+              await btn.click();
+              clicked = true;
+              break;
+            }
+          }
+          if (!clicked) logWithTime('대표 버튼을 찾지 못했습니다.');
+        }
+      } else {
+        logWithTime('선택할 썸네일 이미지가 없습니다.');
+      }
+
+      // 🔄 [수정] 대표 이미지 설정 후 포커스 재설정
+      // 이미지가 선택된 상태에서는 글 작성이 안되므로, 
+      // 에디터 하단 빈 공간(se-canvas-bottom)을 클릭하여 포커스를 이동시킵니다.
+      await frame.click('div.se-canvas-bottom', { delay: 100 });
+      await frame.waitForTimeout(500);
+      await page.keyboard.press('Enter'); // 줄바꿈 확보
+
+    } catch (repErr) {
+      logWithTime('대표 이미지 설정 실패:', repErr.message);
     }
     // await page.keyboard.press('Enter'); // 줄바꿈
   } catch (e) {
-    console.log('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
+    logWithTime('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
   }
 
   // 링크 카드 삽입 (상단) - 제거됨
   // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
   // await frame.waitForTimeout(2000);
+
+  if (coupangLink) {
+    const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+    await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
+    await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
+    await frame.waitForTimeout(2000);
+  }
 
   if (Array.isArray(content)) {
     // 🔄 '개인적인 생각' 섹션을 맨 앞으로 이동 (강제 적용)
@@ -203,6 +284,7 @@ async function writeBlog({
         await frame.waitForTimeout(100);
       }
       if (section.content) {
+        await resetStyle(frame);
         await frame.type(contentSpanSelector, section.content, { delay: 10 });
         await page.keyboard.press('Enter');
         await frame.waitForTimeout(200);
@@ -250,7 +332,6 @@ async function writeBlog({
 
   // 📸 캐릭터 이미지 업로드 및 대표 이미지 설정
   try {
-    const path = require('path');
     const charImagePath = path.resolve(`image/${blogName}/${new Date().getDay()}.png`);
 
     // 파일 선택창 대기
@@ -264,33 +345,42 @@ async function writeBlog({
 
     await frame.waitForTimeout(3000); // 업로드 대기
 
-    // 업로드된 이미지 선택 (첫 번째 이미지 - 썸네일)
-    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 첫 번째 것
-    const images = await frame.$$('.se-module-image');
-    if (images.length > 0) {
-      const firstImage = images[0];
-      await firstImage.click();
-      await frame.waitForTimeout(1000);
+    // 업로드된 이미지 선택 (마지막 이미지 - 썸네일/캐릭터)
+    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 마지막 것
+    // const images = await frame.$$('.se-module-image');
+    // logWithTime(`이미지 개수 확인: ${images.length}`);
 
-      // 대표 이미지 버튼 클릭
-      // 툴바가 뜨면 '대표' 버튼을 찾음
-      const repBtnSelector = 'button.se-toolbar-option-visible-representative-button';
-      const repBtn = await frame.$(repBtnSelector);
+    // if (images.length > 0) {
+    //   const lastImage = images[images.length - 1];
+    //   await lastImage.click();
+    //   await frame.waitForTimeout(1000);
 
-      if (repBtn) {
-        await repBtn.click();
-      } else {
-        // 클래스로 못 찾으면 텍스트로 시도
-        const buttons = await frame.$$('button');
-        for (const btn of buttons) {
-          const text = await btn.textContent();
-          if (text && text.includes('대표')) {
-            await btn.click();
-            break;
-          }
-        }
-      }
-    }
+    //   // 대표 이미지 버튼 클릭
+    //   // 툴바가 뜨면 '대표' 버튼을 찾음
+    //   const repBtnSelector = 'button.se-toolbar-option-visible-representative-button';
+    //   const repBtn = await frame.$(repBtnSelector);
+
+    //   if (repBtn) {
+    //     logWithTime('대표 버튼 찾음, 클릭');
+    //     await repBtn.click();
+    //   } else {
+    //     // 클래스로 못 찾으면 텍스트로 시도
+    //     const buttons = await frame.$$('button');
+    //     let clicked = false;
+    //     for (const btn of buttons) {
+    //       const text = await btn.textContent();
+    //       if (text && text.trim() === '대표') {
+    //         logWithTime('대표 버튼(텍스트) 찾음, 클릭');
+    //         await btn.click();
+    //         clicked = true;
+    //         break;
+    //       }
+    //     }
+    //     if (!clicked) logWithTime('대표 버튼을 찾지 못했습니다.');
+    //   }
+    // } else {
+    //   logWithTime('선택할 이미지가 없습니다.');
+    // }
   } catch (e) {
     console.log('캐릭터 이미지 업로드 또는 대표 설정 실패:', e.message);
   }

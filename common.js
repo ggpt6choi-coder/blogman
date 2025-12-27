@@ -138,8 +138,6 @@ const writeStyledLink = async (page, frame, text, url) => {
 
   // [스타일 적용] 굵게 / 글자 크기 / 색상 / 가운데 정렬
   try {
-    console.log('스타일 적용 시작');
-
     // 1. 굵게 (Cmd+B)
     await page.keyboard.down('Meta');
     await page.keyboard.press('b');
@@ -175,7 +173,7 @@ const writeStyledLink = async (page, frame, text, url) => {
         if (oldBtn) await oldBtn.click();
       }
     } catch (e) {
-      console.log('글자 크기 변경 실패:', e.message);
+      // console.log('글자 크기 변경 실패:', e.message);
     }
 
     // 3. 글자 색상 변경 (빨강색 #ff0010)
@@ -199,7 +197,7 @@ const writeStyledLink = async (page, frame, text, url) => {
         await frame.waitForTimeout(200);
       }
     } catch (e) {
-      console.log('글자 색상 변경 실패:', e.message);
+      // console.log('글자 색상 변경 실패:', e.message);
     }
 
     // 4. 글자 배경색 변경 (연한 노랑 #fff593)
@@ -216,7 +214,7 @@ const writeStyledLink = async (page, frame, text, url) => {
         await frame.waitForTimeout(200);
       }
     } catch (e) {
-      console.log('글자 배경색 변경 실패:', e.message);
+      // console.log('글자 배경색 변경 실패:', e.message);
     }
 
     // 5. 가운데 정렬
@@ -236,11 +234,11 @@ const writeStyledLink = async (page, frame, text, url) => {
       }
       await frame.waitForTimeout(200);
     } catch (e) {
-      console.log('가운데 정렬 실패:', e.message);
+      // console.log('가운데 정렬 실패:', e.message);
     }
 
   } catch (e) {
-    console.log('스타일 적용 중 오류:', e.message);
+    // console.log('스타일 적용 중 오류:', e.message);
   }
 
   // 링크 삽입 시도
@@ -250,10 +248,10 @@ const writeStyledLink = async (page, frame, text, url) => {
     const linkBtn = await frame.$(linkBtnSelector);
 
     if (linkBtn) {
-      console.log('링크 버튼 찾음, 클릭 시도');
+      // console.log('링크 버튼 찾음, 클릭 시도');
       await linkBtn.click();
     } else {
-      console.log('링크 버튼 못 찾음, 단축키(Cmd+K) 시도');
+      // console.log('링크 버튼 못 찾음, 단축키(Cmd+K) 시도');
       await page.keyboard.down('Meta');
       await page.keyboard.press('k');
       await page.keyboard.up('Meta');
@@ -265,7 +263,7 @@ const writeStyledLink = async (page, frame, text, url) => {
     const linkInputSelector = '.se-toolbar-item-link input';
     try {
       await frame.waitForSelector(linkInputSelector, { timeout: 3000 });
-      console.log('링크 입력창 뜸');
+      // console.log('링크 입력창 뜸');
       await frame.type(linkInputSelector, url, { delay: 50 });
       await page.keyboard.press('Enter'); // 링크 적용
       await frame.waitForTimeout(500);
@@ -274,13 +272,13 @@ const writeStyledLink = async (page, frame, text, url) => {
       await page.keyboard.press('Escape');
       await frame.waitForTimeout(300);
 
-      console.log('제품 링크 삽입 완료');
+      // console.log('제품 링크 삽입 완료');
     } catch (e) {
-      console.log('링크 입력창 Timeout:', e.message);
+      // console.log('링크 입력창 Timeout:', e.message);
       await page.keyboard.press('Escape');
     }
   } catch (e) {
-    console.log('링크 삽입 과정 중 오류:', e.message);
+    // console.log('링크 삽입 과정 중 오류:', e.message);
   }
 
   // 링크 삽입 후 다음 줄로 이동
@@ -291,9 +289,9 @@ const writeStyledLink = async (page, frame, text, url) => {
   // 대신 에디터 하단 여백을 클릭하여 강제로 새 줄 생성
   try {
     await frame.click('div.se-canvas-bottom', { force: true });
-    console.log('에디터 하단 클릭 (새 줄 생성)');
+    // console.log('에디터 하단 클릭 (새 줄 생성)');
   } catch (e) {
-    console.log('하단 클릭 실패, 엔터 시도:', e.message);
+    // console.log('하단 클릭 실패, 엔터 시도:', e.message);
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('End');
     await page.keyboard.press('Enter');
@@ -406,7 +404,7 @@ const resetStyle = async (frame) => {
     } catch (e) { }
 
   } catch (e) {
-    console.log('스타일 원복 실패:', e.message);
+    // console.log('스타일 원복 실패:', e.message);
   }
 };
 

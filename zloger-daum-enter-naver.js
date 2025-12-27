@@ -271,15 +271,15 @@ async function writeBlog({
     }
 
     for (const [i, section] of content.entries()) {
-      // 1번째(인덱스 0), 3번째(인덱스 2) 문단 체크
-      if (i === 1 || i === 3) {
-        if (coupangLink) {
-          const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
-          await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
-          await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
-          await frame.waitForTimeout(2000);
-        }
-      }
+      // 쿠팡링크 추가 : 1번째(인덱스 0), 3번째(인덱스 2) 문단 체크
+      // if (i === 1 || i === 3) {
+      //   if (coupangLink) {
+      //     const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+      //     await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
+      //     await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
+      //     await frame.waitForTimeout(2000);
+      //   }
+      // }
 
       if (section.title) {
         await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
@@ -289,7 +289,7 @@ async function writeBlog({
         await frame.waitForTimeout(100);
       }
       if (section.content) {
-        await resetStyle(frame);
+        // await resetStyle(frame);
         await frame.type(contentSpanSelector, section.content, { delay: 10 });
         await page.keyboard.press('Enter');
         await frame.waitForTimeout(200);

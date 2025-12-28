@@ -152,28 +152,28 @@ async function writeBlog({
   await frame.type(contentSpanSelector, title, { delay: 40 });
 
   // 📸 공정위 이미지 업로드
-  const coupangLink = await getCoupangLink();
+  // const coupangLink = await getCoupangLink();
 
-  try {
-    if (coupangLink) {
-      const sentenceImagePath = path.resolve('image/coupang-sentence.png');
+  // try {
+  //   if (coupangLink) {
+  //     const sentenceImagePath = path.resolve('image/coupang-sentence.png');
 
-      // 파일 선택창 대기
-      const fileChooserPromise = page.waitForEvent('filechooser');
+  //     // 파일 선택창 대기
+  //     const fileChooserPromise = page.waitForEvent('filechooser');
 
-      // '사진' 버튼 클릭
-      await frame.click('button.se-image-toolbar-button');
+  //     // '사진' 버튼 클릭
+  //     await frame.click('button.se-image-toolbar-button');
 
-      const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles(sentenceImagePath);
+  //     const fileChooser = await fileChooserPromise;
+  //     await fileChooser.setFiles(sentenceImagePath);
 
-      await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
-      // await page.keyboard.press('Enter'); // 줄바꿈
-      // await frame.waitForTimeout(500);
-    }
-  } catch (e) {
-    logWithTime('coupang-sentence.png 업로드 실패:', e.message);
-  }
+  //     await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
+  //     // await page.keyboard.press('Enter'); // 줄바꿈
+  //     // await frame.waitForTimeout(500);
+  //   }
+  // } catch (e) {
+  //   logWithTime('coupang-sentence.png 업로드 실패:', e.message);
+  // }
 
   // 📸 이미지 업로드
   try {

@@ -220,7 +220,6 @@ async function writeBlog({
         const repBtn = await frame.$(repBtnSelector);
 
         if (repBtn) {
-          logWithTime('대표 버튼 찾음, 클릭');
           await repBtn.click();
         } else {
           // 클래스로 못 찾으면 텍스트로 시도
@@ -229,7 +228,6 @@ async function writeBlog({
           for (const btn of buttons) {
             const text = await btn.textContent();
             if (text && text.trim() === '대표') {
-              logWithTime('대표 버튼(텍스트) 찾음, 클릭');
               await btn.click();
               clicked = true;
               break;

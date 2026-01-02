@@ -1,8 +1,8 @@
-name: nate-ji-crawling [elog***]
+name: nate-review36524-crawling
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 한국시간 오전 9:00
+    - cron: '0 1 * * *' # 한국시간 오전 10:00
     # - cron: '0 8 * * *' # 한국시간 오후 5:00 (UTC 07:00)
 
   workflow_dispatch:
@@ -49,10 +49,10 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run nate-ji-crawling.js
-        run: node nate-ji-crawling.js > nate-ji-crawl_log.txt 2>&1
+      - name: Run nate-review36524-crawling.js
+        run: node nate-review36524-crawling.js > nate-review36524-crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY_JI: ${{ secrets.GEMINI_API_KEY_JI }}
+          GEMINI_API_KEY_REVIEW36524: ${{ secrets.GEMINI_API_KEY_REVIEW36524 }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
@@ -61,7 +61,7 @@ jobs:
         with:
           name: crawl-artifacts
           path: |
-            nate-ji-crawl_log.txt
+            nate-review36524-crawl_log.txt
             data/**
             mainFrame_not_found_*.png
 

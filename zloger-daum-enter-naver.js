@@ -206,7 +206,6 @@ async function writeBlog({
       // 업로드된 이미지 선택 (마지막 이미지 - 썸네일)
       // se-image-container 또는 se-module-image 클래스를 가진 요소 중 마지막 것
       const images = await frame.$$('.se-module-image');
-      logWithTime(`이미지 개수 확인(대표설정): ${images.length}`);
 
       if (images.length > 0) {
         // 가장 마지막에 업로드된 이미지가 썸네일임

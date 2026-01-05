@@ -1,9 +1,9 @@
 name: zloger-daum-enter-crawling [******]
 
 on:
-  schedule:
-    - cron: '0 2 * * *' #  12:00
-    - cron: '0 5 * * *' #  15:00
+  #schedule:
+    #- cron: '0 2 * * *' #  12:00
+    #- cron: '0 5 * * *' #  15:00
 
   workflow_dispatch:
 

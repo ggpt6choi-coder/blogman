@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const axios = require('axios');
 const { XMLParser } = require('fast-xml-parser');
-const { logWithTime, getKstIsoNow } = require('./common');
+const { logWithTime, getKstIsoNow, parseGeminiResponse } = require('./common');
 const { exec } = require('child_process');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
@@ -194,29 +194,7 @@ async function fetchAndExtractXML(url) {
           const result = await generateContentWithRetry(model, prompt);
           const raw = result.response.text().trim();
 
-          let parsedData = null;
-          try {
-            // 1. Try parsing raw directly
-            parsedData = JSON.parse(raw);
-          } catch (jsonErr) {
-            // 2. Try cleaning markdown code blocks
-            let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-            try {
-              parsedData = JSON.parse(cleanRaw);
-            } catch (e2) {
-              // 3. Try extracting json object with regex
-              const match = cleanRaw.match(/\{[\s\S]*\}/);
-              if (match) {
-                try {
-                  parsedData = JSON.parse(match[0]);
-                } catch (e3) {
-                  console.log('JSON parsing failed even with regex match. Raw:', raw);
-                }
-              } else {
-                console.log('JSON parsing failed. Raw:', raw);
-              }
-            }
-          }
+          const parsedData = parseGeminiResponse(raw);
 
           if (parsedData) {
             newTitle = parsedData.newTitle || '[변환 실패]';

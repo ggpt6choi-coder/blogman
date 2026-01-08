@@ -408,6 +408,35 @@ const resetStyle = async (frame) => {
   }
 };
 
+//✅ Gemini 응답 파싱 헬퍼 함수
+const parseGeminiResponse = (raw) => {
+  let parsedData = null;
+  try {
+    // 1. Try parsing raw directly
+    parsedData = JSON.parse(raw);
+  } catch (jsonErr) {
+    // 2. Try cleaning markdown code blocks (case-insensitive)
+    let cleanRaw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    try {
+      parsedData = JSON.parse(cleanRaw);
+    } catch (e2) {
+      // 3. Try extracting json object with regex
+      const firstBrace = cleanRaw.indexOf('{');
+      const lastBrace = cleanRaw.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        const jsonCandidate = cleanRaw.substring(firstBrace, lastBrace + 1);
+        try {
+          parsedData = JSON.parse(jsonCandidate);
+        } catch (e3) {
+          console.log('JSON parsing failed even with substring extraction. Raw:', raw);
+        }
+      } else {
+        console.log('JSON parsing failed. Raw:', raw);
+      }
+    }
+  }
+  return parsedData;
+};
 
 
-module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle };
+module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle, parseGeminiResponse };

@@ -26,12 +26,12 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     //////////////////////////////////////////////////////////////////////////
     //🌟🌟🌟🌟🌟 초기 세팅
     logWithTime('크롤링 시작', '⏰');
-    if (!process.env.GEMINI_API_KEY_JI_2) {
-        logWithTime('GEMINI_API_KEY_JI_2 is missing in .env');
+    if (!process.env.GEMINI_API_KEY_HS) {
+        logWithTime('GEMINI_API_KEY_HS is missing in .env');
         process.exit(1);
     }
     const browser = await chromium.launch({ headless: !SHOW_BROWSER });
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_JI_2);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     //////////////////////////////////////////////////////////////////////////
@@ -65,9 +65,8 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     let count = 1;
     const results = [];
     for (const link of toProcessLinks) {
-        logWithTime(`크롤링 중...[${count}/${toProcessLinks.length}] ${link}`, '🔍');
-        if (count > 5) continue;
-        count++;
+        logWithTime(`크롤링 중...[${count++}/${toProcessLinks.length}] ${link}`, '🔍');
+        if (count > 2) continue;
         // 2. 기사별 제목, 기사 크롤링
         let title = '';
         let article = '';
@@ -139,66 +138,47 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
 
             if (article !== '[본문 없음]' && article.length !== 0 && title !== '[제목 없음]') {
                 try {
-                    // 연예 뉴스에 특화된 3가지 페르소나 정의
-                    const concepts = [
-                        "주접킹 팬심 모드: '우리 오빠 미모 무슨 일이야', '심장 아파' 등 비주얼과 매력을 찬양하며 감정을 200% 과몰입해서 표현하는 열성 팬 스타일.",
-                        "방구석 1열 리포터 모드: '대박 사건 터졌네요', '현재 네티즌 반응은 이렇습니다' 처럼 이슈의 흐름을 생동감 있고 객관적인 척하지만 흥분해서 전달하는 유튜버 스타일.",
-                        "TMI 수집가 모드: 해당 연예인의 과거 작품, 유사한 사례, 숨겨진 비하인드 스토리 등 배경 지식을 풍부하게 엮어서 설명해주는 연예계 척척박사 스타일."
-                    ];
-
-                    // 페르소나 선택 (현재 0번 고정)
-                    const selectedConcept = concepts[0];
-
                     const prompt = `
-                        너는 네이버 블로그 검색 로직(Smart Block, Air Search)을 뚫을 수 있는 '수다쟁이 연예 전문 에디터'야.
-                        주어진 기사를 재료로, **검색 결과 1위와 네이버 메인 노출**을 동시에 잡을 수 있는 **초장문 포스팅**을 작성해.
+                    너는 대한민국 연예계 이슈를 가장 감성적이고 수다스럽게 풀어내는 **'투머치토커(TMT) 연예 전문 블로거'**야.
+                    주어진 기사 내용을 바탕으로, 독자가 깊이 공감하고 몰입할 수 있는 **풍성한 블로그 포스팅**을 작성해.
 
-                        [🔴 적용 페르소나: "${selectedConcept}"]
-                        - **핵심 전략: "투머치 토커(Too Much Talker)"가 되어라.** - 기사 내용이 1이라면, 너의 반응과 배경지식(TMI)을 9만큼 섞어서 분량을 10으로 늘려야 해.
-                        - **스타일 규칙: 볼드체(**)나 특수기호로 멋을 부리지 말고, 오직 흡입력 있는 문장력으로 승부해.**
+                    [입력 데이터]
+                    - 원본 제목: ${title}
+                    - 기사 내용: ${article}
 
-                        결과는 반드시 아래의 JSON 포맷으로만 출력해.
+                    [필수 출력 포맷 (JSON)]
+                    - **반드시 아래 JSON 형식을 정확히 지켜.** (Markdown code block '''json 사용 금지)
+                    - newArticle 배열 내부의 키값은 **'subTitle'이 아니라 반드시 'title'로** 작성해.
+                    - 내용(content) 내의 줄바꿈은 '\\n'으로, 큰따옴표는 '\\"'로 이스케이프 처리해.
 
-                        {
-                            "newTitle": "블로그용 제목",
-                            "newArticle": [
-                                {"title": "소제목1", "content": "내용1 (최소 600자 이상, 문단 나눔 필수)"},
-                                {"title": "소제목2", "content": "내용2 (최소 600자 이상, 문단 나눔 필수)"},
-                                {"title": "소제목3", "content": "내용3 (최소 600자 이상, 문단 나눔 필수)"},
-                                {"title": "소제목4", "content": "내용4 (최소 600자 이상, 문단 나눔 필수)"},
-                                {"title": "솔직한 후기", "content": "내용5 (최소 500자 이상)"}
-                            ],
-                            "hashTag": ["#태그1", "#태그2", ...],
-                            "sourceCredit": "출처 표기 문구"
-                        }
+                    {
+                    "newTitle": "특수문자 없는 깔끔한 제목",
+                    "newArticle": [
+                        {"title": "소제목1", "content": "내용1 (최소 300자 이상)"},
+                        {"title": "소제목2", "content": "내용2 (최소 300자 이상)"},
+                        {"title": "소제목3", "content": "내용3 (최소 300자 이상)"},
+                        {"title": "소제목4", "content": "내용4 (최소 300자 이상)"},
+                        {"title": "솔직한 후기", "content": "내용5 (최소 300자 이상)"}
+                    ],
+                    "hashTag": ["#태그1", "#태그2", ...]
+                    }
 
-                        [Step 1. 제목(newTitle) 작성 - '키워드'와 '클릭'의 황금비율]
-                        - **절대 규칙:** 특수문자(!, ?, [], (), ~), 한자, 이모지 **절대 사용 금지.** 오직 **한글, 숫자, 띄어쓰기**만 사용할 것.
-                        - **제1원칙:** 사람들이 검색할 법한 **'메인 키워드'**를 반드시 제목 **맨 앞**에 배치하라.
-                        - **제2원칙:** 키워드 뒤에는 기사의 **구체적인 숫자(금액, 나이, 시청률 등)**나 **핵심 상황**을 적어 클릭을 유도하라.
-                        - (나쁜 예): "[충격] 숙행 상간 소송?? (대박)" (특수문자 포함됨)
-                        - (완벽한 예): "숙행 상간 소송 의혹 사건반장 40대 여가수 지목에 현역가왕3 비상"
+                    [작성 가이드 1: 제목 클린 정책 (매우 중요!)]
+                    - 제목에 **[ ] , { } , ( ) , ★ , ♥ , " , ' , - , |** 같은 특수문자를 절대 사용하지 마.
+                    - 오직 **한글, 영문, 숫자, 물음표(?), 느낌표(!)**만 사용해서 문장을 완성해.
+                    - 예시: "[종합] 故안성기 추모.. (눈물)" (X) -> "안성기 추모 물결 배우들의 눈물과 검은 옷 시사회" (O)
 
-                        [Step 2. 본문 분량 뻥튀기 전략 (가장 중요)]
-                        - **전체 목표: 공백 포함 3,000자 이상.** (기사를 요약하면 실패한 것으로 간주함)
-                        - **확장 기법:** 1. 기사 한 문장을 읽고 -> 나의 충격적인 감정 3문장 + 관련 TMI 2문장 + 친구에게 말하듯 수다 3문장으로 불리기.
-                            2. 해당 연예인의 **데뷔 일화, 과거 히트곡, 평소 성격, MBTI, 팬클럽 반응** 등을 AI 지식으로 검색해 내용에 섞을 것.
-                        - **문단 구성:** 각 소제목(content) 당 **반드시 줄바꿈(\\n\\n)을 사용하여 3~4개의 긴 문단**으로 구성할 것.
+                    [작성 가이드 2: 내용 뻥튀기 (TMT 전략)]
+                    - 기사를 요약하지 말고, 너의 **배경지식(과거 작품, TMI, 여론)**을 총동원해서 **3배 이상 늘려써.**
+                    - 각 섹션(content)은 **최소 10문장 이상**으로 길게 작성해.
+                    - 말투: "세상에..", "진짜 마음이 아프네요", "그거 아세요?" 같이 말을 거는 **100% 구어체** 사용.
 
-                        [Step 3. SEO 최적화 (노출 보장)]
-                        - **첫 문장 규칙:** 본문 시작 **첫 문장**에 반드시 **메인 키워드**를 자연스럽게 포함시킬 것.
-                        - **키워드 반복:** 글이 길어진 만큼, **메인 키워드**를 각 소제목 섹션마다 2~3회씩 의식적으로 반복할 것.
-
-                        [Step 4. 섹션별 상세 작성 가이드]
-                        * 섹션 1 (도입): **(키워드 첫 문장 필수)** 날씨/계절 인사로 시작해 기사를 접한 충격을 아주 길게 서술. (최소 600자)
-                        * 섹션 2 (팩트 상세화): 기사 내용을 육하원칙으로 풀되, 마치 옆에서 본 것처럼 아주 상세하게 묘사. (최소 600자)
-                        * 섹션 3 (심화 분석): 이 사건이 왜 화제인지, 과거 유사한 연예계 사례는 없었는지 비교 분석. (최소 600자)
-                        * 섹션 4 (네티즌 반응 & TMI): 커뮤니티 댓글 반응을 가상으로 5개 이상 리스트업하고, 연예인 TMI 대방출. (최소 600자)
-                        * 섹션 5 (주관적 후기): 1인칭 시점의 구구절절한 감상평과 응원. (최소 500자)
-
-                        [입력 데이터]
-                        - 원본 제목: ${title}
-                        - 기사 내용: ${article}
+                    [세부 섹션 구성]
+                    1. 섹션 1 (title: 감성 도입부): 기사 요약 금지. "여러분 오늘 소식 들으셨나요?"라며 감성적으로 접근.
+                    2. 섹션 2 (title: 배경 설명): 사건의 배경이나 인물에 대한 TMI 설명. (기사에 없어도 관련 지식 활용)
+                    3. 섹션 3 (title: 핵심 내용): 기사의 육하원칙을 아주 상세하게 묘사.
+                    4. 섹션 4 (title: 의미 부여): 이 사건이 주는 의미나 대중들의 반응 소개.
+                    5. 섹션 5 (title: 솔직한 후기): 너의 주관적인 감정과 다짐. ("저는 앞으로~ 할래요")
                     `;
 
                     const result = await generateContentWithRetry(model, prompt);
@@ -287,9 +267,9 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         logWithTime('data 디렉터리 생성됨');
     }
     // daum_entertainment_data.json 저장
-    fs.writeFileSync(`${dirPath}/zloger_daum_entertainment_data.json`, JSON.stringify(results, null, 2), 'utf-8');
+    fs.writeFileSync(`${dirPath}/m1_data.json`, JSON.stringify(results, null, 2), 'utf-8');
     // time_check.json 저장
-    fs.writeFileSync(`${dirPath}/zloger_daum_entertainment_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
+    fs.writeFileSync(`${dirPath}/m1_time_check.json`, JSON.stringify({ created: `${getKstIsoNow()}` }, null, 2), 'utf-8');
 
     await browser.close();
 })();

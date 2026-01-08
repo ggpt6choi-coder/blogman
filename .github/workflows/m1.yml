@@ -1,13 +1,13 @@
-name: daum-enter-crawling [******cake]
+name: m1-crawling [mloger****]
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 11시 (KST)
-    - cron: '0 2 * * *'   # 12시 (KST)
-    - cron: '0 4 * * *'   # 13시 (KST)
-    - cron: '0 6 * * *'   # 15시 (KST)
-    - cron: '0 8 * * *'   # 17시 (KST)
-    - cron: '0 10 * * *'  # 19시 (KST)
+    - cron: '0 23 * * *'   # 10시 (KST)
+    - cron: '0 1 * * *'   # 11시 (KST)
+    - cron: '0 3 * * *'   # 12시 (KST)
+    - cron: '0 5 * * *'   # 14시 (KST)
+    - cron: '0 7 * * *'   # 16시 (KST)
+    - cron: '0 9 * * *'  # 18시 (KST)
 
   workflow_dispatch:
 
@@ -53,8 +53,8 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run daum-enter-crawling.js
-        run: node daum-enter-crawling.js > daum_entertainment_crawl_log.txt 2>&1
+      - name: Run m1-crawling.js
+        run: node m1-crawling.js > m1_crawl_log.txt 2>&1
         env:
           GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -65,7 +65,7 @@ jobs:
         with:
           name: crawl-artifacts
           path: |
-            daum_entertainment_crawl_log.txt
+            m1_crawl_log.txt
             data/**
             mainFrame_not_found_*.png
 

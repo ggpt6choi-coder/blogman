@@ -2,7 +2,7 @@ require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { chromium } = require('playwright');
 const fs = require('fs');
-const { logWithTime } = require('./common');
+const { logWithTime, parseGeminiResponse } = require('./common');
 
 // Gemini API 재시도 헬퍼 함수
 async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 2000) {
@@ -222,29 +222,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     const result = await generateContentWithRetry(model, prompt);
                     const raw = result.response.text().trim();
 
-                    let parsedData = null;
-                    try {
-                        // 1. Try parsing raw directly
-                        parsedData = JSON.parse(raw);
-                    } catch (jsonErr) {
-                        // 2. Try cleaning markdown code blocks
-                        let cleanRaw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-                        try {
-                            parsedData = JSON.parse(cleanRaw);
-                        } catch (e2) {
-                            // 3. Try extracting json object with regex
-                            const match = cleanRaw.match(/\{[\s\S]*\}/);
-                            if (match) {
-                                try {
-                                    parsedData = JSON.parse(match[0]);
-                                } catch (e3) {
-                                    console.log('JSON parsing failed even with regex match. Raw:', raw);
-                                }
-                            } else {
-                                console.log('JSON parsing failed. Raw:', raw);
-                            }
-                        }
-                    }
+                    const parsedData = parseGeminiResponse(raw);
 
                     if (parsedData) {
                         newTitle = parsedData.newTitle || '[변환 실패]';

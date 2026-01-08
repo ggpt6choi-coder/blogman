@@ -335,7 +335,7 @@ async function writeBlog({
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
 
   // 4. 카테고리 설정 (연예)
-  const categoryName = '연예';
+  const categoryName = '연예기사';
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
   await frame.click(
     `span[data-testid^="categoryItemText_"]:text("${categoryName}")`

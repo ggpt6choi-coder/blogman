@@ -2,7 +2,7 @@ name: nate-ji-crawling [elog***]
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 한국시간 오전 9:00
+    - cron: '0 0 * * *' # 한국시간 오전 10:00
     # - cron: '0 8 * * *' # 한국시간 오후 5:00 (UTC 07:00)
 
   workflow_dispatch:

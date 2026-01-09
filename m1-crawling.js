@@ -65,6 +65,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     // });
 
     // 기사 크롤링 시작
+    let count = 1;
     const results = [];
     for (const link of toProcessLinks) {
         logWithTime(`크롤링 중...[${count++}/${toProcessLinks.length}] ${link}`, '🔍');

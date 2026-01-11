@@ -98,7 +98,7 @@ const loadLinks = async () => {
   }
 };
 
-//✅ 네이버 커넥트 URL 가져오는 함수
+//✅ 네이버 커넥트 URL 가져오는 함수(로컬)
 // JSON 파일에서 링크를 불러오는 함수
 // const loadLinks = () => {
 //   return new Promise((resolve, reject) => {
@@ -123,6 +123,73 @@ const getAdItemLink = async () => {
   }
 };
 
+//✅ 링크 카드 처리 함수(링크 삽입하고 제품 나오고 링크 삭제)
+async function insertLinkAndRemoveUrl(frame, page, selector, url) {
+  if (!url) return;
+
+  // 1. URL 입력 및 엔터 (링크 카드 생성 유도)
+  // frame.type은 selector에 해당하는 첫 번째 요소로 포커스를 옮기기 때문에, 
+  // 글이 길어지면 맨 위로 올라가는 문제가 있음. 현재 커서 위치에 입력하기 위해 keyboard.type 사용.
+  await page.keyboard.type(url, { delay: 40 });
+  await page.keyboard.press('Enter');
+
+  // 2. 링크 카드 생성 대기 (최대 10초)
+  try {
+    // .se-module-oglink 또는 .se-oglink-info 등 링크 카드 관련 클래스 대기
+    await frame.waitForSelector('.se-module-oglink, .se-oglink-info', { timeout: 10000 });
+
+    // 3. 카드가 생성되면 URL 텍스트 삭제 (사용자 제공 로직)
+    const components = await frame.$$('.se-component');
+    let hasLinkCard = false;
+    if (components.length > 0) {
+      const lastComp = components[components.length - 1];
+      const classAttr = await lastComp.getAttribute('class');
+      if (classAttr.includes('se-oglink')) {
+        hasLinkCard = true;
+      } else if (components.length > 1) {
+        const secondLast = components[components.length - 2];
+        const secondClass = await secondLast.getAttribute('class');
+        if (secondClass.includes('se-oglink')) {
+          hasLinkCard = true;
+        }
+      }
+    }
+
+    if (hasLinkCard) {
+      await page.keyboard.press('ArrowUp'); // 링크 카드 선택
+      await frame.waitForTimeout(100);
+      await page.keyboard.press('ArrowUp'); // 텍스트 라인으로 이동
+    } else {
+      await page.keyboard.press('ArrowUp'); // 텍스트 라인으로 이동
+    }
+    await frame.waitForTimeout(500);
+
+    // 커서를 줄 끝으로
+    await page.keyboard.press('Meta+ArrowRight');
+
+    // 줄 전체 선택
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('Meta');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.up('Meta');
+    await page.keyboard.up('Shift');
+
+    await frame.waitForTimeout(200);
+    await page.keyboard.press('Backspace');
+
+    await page.keyboard.press('ArrowDown');
+    if (hasLinkCard) {
+      await page.keyboard.press('ArrowDown');
+    }
+    await page.keyboard.press('Enter');
+
+  } catch (e) {
+    logWithTime('링크 카드 생성 실패 또는 시간 초과 (URL 텍스트 유지됨):', '❌')
+    // 실패 시 그냥 엔터 한 번 더 치고 진행
+    await page.keyboard.press('Enter');
+  }
+  await frame.waitForTimeout(1000);
+}
 
 //✅ 문구와 URL을 입력받아 스타일 적용 후 링크 삽입하는 함수
 const writeStyledLink = async (page, frame, text, url) => {
@@ -439,4 +506,4 @@ const parseGeminiResponse = (raw) => {
 };
 
 
-module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle, parseGeminiResponse };
+module.exports = { logWithTime, getKstIsoNow, isWithinLastHour, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle, parseGeminiResponse, insertLinkAndRemoveUrl };

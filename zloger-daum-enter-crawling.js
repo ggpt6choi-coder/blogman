@@ -53,7 +53,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     );
     // 뉴스 리스트 합치기
     // newsPosts.push(...newsPosts2);
-    toProcessLinks = newsPosts1;
+    toProcessLinks = newsPosts;
 
     // 조회 시간 1시간 이내 기사만 필터링
     // const toProcessLinks = newsPosts.filter(url => {

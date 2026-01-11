@@ -26,12 +26,12 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     //////////////////////////////////////////////////////////////////////////
     //🌟🌟🌟🌟🌟 초기 세팅
     logWithTime('크롤링 시작', '⏰');
-    if (!process.env.GEMINI_API_KEY_HS) {
-        logWithTime('GEMINI_API_KEY_HS is missing in .env');
+    if (!process.env.GEMINI_API_KEY_M1) {
+        logWithTime('GEMINI_API_KEY_M1 is missing in .env');
         process.exit(1);
     }
     const browser = await chromium.launch({ headless: !SHOW_BROWSER });
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_HS);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_M1);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     //////////////////////////////////////////////////////////////////////////

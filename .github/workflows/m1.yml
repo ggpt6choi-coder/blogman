@@ -56,7 +56,7 @@ jobs:
       - name: Run m1-crawling.js
         run: node m1-crawling.js > m1_crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
+          GEMINI_API_KEY_M1: ${{ secrets.GEMINI_API_KEY_M1 }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts

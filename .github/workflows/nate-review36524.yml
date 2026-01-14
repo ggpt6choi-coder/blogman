@@ -2,7 +2,7 @@ name: nate-review36524-crawling
 
 on:
   schedule:
-    - cron: '0 2 * * *' # 한국시간 오전 12:00
+    - cron: '0 10 * * *' # 한국시간 오전 12:00
 
   workflow_dispatch:
 

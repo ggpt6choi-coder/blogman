@@ -2,11 +2,11 @@ name: zloger-daum-enter-crawling [******]
 
 on:
   schedule:
-    - cron: '0 09 * * *' #8:26 AM
-    - cron: '0 10 * * *' #12:02 PM
-    - cron: '0 14 * * *' #2:29 PM
-    - cron: '0 15 * * *' #3:44 PM
-    - cron: '0 16 * * *' #4:29 PM
+    - cron: '0 0 * * *'
+    - cron: '0 1 * * *'
+    - cron: '0 2 * * *'
+    - cron: '0 3 * * *'
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 permissions:

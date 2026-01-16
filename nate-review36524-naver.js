@@ -368,10 +368,10 @@ async function writeBlog({
   const createdTime = new Date(timeData.created);
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: review36524_nate_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌');
-    process.exit(0);
-  }
+  // if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
+  //   logWithTime('실행 조건 불만족: review36524_nate_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌');
+  //   process.exit(0);
+  // }
 
   //시작
   const browser = await chromium.launch({

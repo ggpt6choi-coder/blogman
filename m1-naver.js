@@ -145,10 +145,13 @@ async function writeBlog({
       }
       if (section.content) {
         await frame.type(contentSpanSelector, section.content, { delay: 10 });
+        // if (count !== 0 && count !== 1) {
         await page.keyboard.press('Enter');
+        // }
         await frame.waitForTimeout(200);
       }
-      if (count === 0) {
+
+      if (count === 0 || count === 1) {
         await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
         await frame.waitForTimeout(2000);
       }
@@ -158,7 +161,6 @@ async function writeBlog({
     }
   }
   // 링크 카드 삽입 (하단)
-  await page.keyboard.press('Enter');
   await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
   await frame.waitForTimeout(2000);
 

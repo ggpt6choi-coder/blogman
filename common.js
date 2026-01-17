@@ -127,65 +127,98 @@ const getAdItemLink = async () => {
 async function insertLinkAndRemoveUrl(frame, page, selector, url) {
   if (!url) return;
 
+  // 0. 기존 링크 카드 개수 확인 (선택자 확대)
+  const linkSelector = '.se-module-oglink, .se-oglink-info, .se-oglink';
+  const getLinkCardCount = async () => {
+    return await frame.$$eval(linkSelector, els => els.length);
+  };
+  const initialCount = await getLinkCardCount();
+
   // 1. URL 입력 및 엔터 (링크 카드 생성 유도)
   // frame.type은 selector에 해당하는 첫 번째 요소로 포커스를 옮기기 때문에, 
   // 글이 길어지면 맨 위로 올라가는 문제가 있음. 현재 커서 위치에 입력하기 위해 keyboard.type 사용.
   await page.keyboard.type(url, { delay: 40 });
   await page.keyboard.press('Enter');
 
-  // 2. 링크 카드 생성 대기 (최대 10초)
-  try {
-    // .se-module-oglink 또는 .se-oglink-info 등 링크 카드 관련 클래스 대기
-    await frame.waitForSelector('.se-module-oglink, .se-oglink-info', { timeout: 10000 });
+  // 2. 새 링크 카드 생성 대기 (매뉴얼 폴링)
+  // 개수가 initialCount보다 커질 때까지 루프
+  let newCount = initialCount;
+  let retries = 0;
+  const maxRetries = 20; // 500ms * 20 = 10초
 
-    // 3. 카드가 생성되면 URL 텍스트 삭제 (사용자 제공 로직)
+  while (retries < maxRetries) {
+    await frame.waitForTimeout(500);
+    newCount = await getLinkCardCount();
+
+    if (newCount > initialCount) {
+      break;
+    }
+    retries++;
+  }
+
+  if (newCount <= initialCount) {
+    // 진행을 위해 엔터 한번 더 (혹시 텍스트만 남아있을 수 있으니)
+    await page.keyboard.press('Enter');
+    return; // 삭제 로직 진행 불가
+  }
+
+  // 3. 스마트 삭제 로직
+  // 마지막 요소가 아니라 역순으로 탐색하여 "최신" 링크 카드를 찾음
+  try {
     const components = await frame.$$('.se-component');
-    let hasLinkCard = false;
-    if (components.length > 0) {
-      const lastComp = components[components.length - 1];
-      const classAttr = await lastComp.getAttribute('class');
-      if (classAttr.includes('se-oglink')) {
-        hasLinkCard = true;
-      } else if (components.length > 1) {
-        const secondLast = components[components.length - 2];
-        const secondClass = await secondLast.getAttribute('class');
-        if (secondClass.includes('se-oglink')) {
-          hasLinkCard = true;
-        }
+
+    let linkIndex = -1;
+    // 뒤에서부터 3개 정도만 확인해보자 (보통 마지막이나 그 앞임)
+    for (let i = components.length - 1; i >= Math.max(0, components.length - 5); i--) {
+      const comp = components[i];
+      const classAttr = await comp.getAttribute('class');
+      if (classAttr && (classAttr.includes('se-oglink') || classAttr.includes('se-module-oglink'))) {
+        linkIndex = i;
+        break;
       }
     }
 
-    if (hasLinkCard) {
-      await page.keyboard.press('ArrowUp'); // 링크 카드 선택
-      await frame.waitForTimeout(100);
-      await page.keyboard.press('ArrowUp'); // 텍스트 라인으로 이동
-    } else {
-      await page.keyboard.press('ArrowUp'); // 텍스트 라인으로 이동
+    if (linkIndex !== -1 && linkIndex > 0) {
+      // 바로 위 요소(URL 텍스트 추정) 확인
+      const prevComp = components[linkIndex - 1];
+      let prevText = await prevComp.innerText();
+      prevText = prevText ? prevText.trim() : "";
+
+      if ((prevText && prevText.includes(url)) || (prevText.startsWith('http'))) {
+        // 커서 위치 계산
+        // 현재 커서는 맨 마지막 컴포넌트(엔터로 생긴 빈 줄)에 있을 가능성이 높음
+        // 이동해야 할 횟수 = (전체길이 - 1 - 링크인덱스) + 1 (링크위로가야하니까)
+        const movesUp = (components.length - 1 - linkIndex) + 1;
+
+        for (let k = 0; k < movesUp; k++) {
+          await page.keyboard.press('ArrowUp');
+          await frame.waitForTimeout(50);
+        }
+
+        // 이제 커서는 [URL 텍스트 라인]에 위치해야 함
+
+        await page.keyboard.press('Meta+ArrowRight'); // 줄 끝
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('Meta');
+        await page.keyboard.press('ArrowLeft'); // 전체 선택
+        await page.keyboard.up('Meta');
+        await page.keyboard.up('Shift');
+
+        await frame.waitForTimeout(100);
+        await page.keyboard.press('Backspace'); // 삭제
+
+        // 다시 원위치로 복귀
+        // 원래 위치(맨 아래 빈 줄)로 돌아오려면 Down을 movesUp 만큼 하면 됨
+        // 하지만 삭제되었으므로 컴포넌트 하나가 줄었음.
+        // 또한 링크 카드를 지나쳐야 함.
+        // 여기서 안전하게 "엔터"를 칠 수 있는 곳으로 가야함.
+        // 링크 카드 아래로 이동
+        await page.keyboard.press('ArrowDown'); // 링크 카드로 이동
+        await page.keyboard.press('ArrowDown'); // 그 다음 줄(빈 줄)
+        // await page.keyboard.press('Enter');
+      }
     }
-    await frame.waitForTimeout(500);
-
-    // 커서를 줄 끝으로
-    await page.keyboard.press('Meta+ArrowRight');
-
-    // 줄 전체 선택
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('Meta');
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.up('Meta');
-    await page.keyboard.up('Shift');
-
-    await frame.waitForTimeout(200);
-    await page.keyboard.press('Backspace');
-
-    await page.keyboard.press('ArrowDown');
-    if (hasLinkCard) {
-      await page.keyboard.press('ArrowDown');
-    }
-    await page.keyboard.press('Enter');
-
   } catch (e) {
-    logWithTime('링크 카드 생성 실패 또는 시간 초과 (URL 텍스트 유지됨):', '❌')
-    // 실패 시 그냥 엔터 한 번 더 치고 진행
     await page.keyboard.press('Enter');
   }
   await frame.waitForTimeout(1000);

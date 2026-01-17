@@ -129,6 +129,7 @@ async function writeBlog({
     console.log('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
   }
 
+  let count = 0;
   for (const section of content) {
     if (section.title) {
       await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
@@ -150,6 +151,7 @@ async function writeBlog({
 
     // 소제목/내용 사이 구분을 위해 한 줄 띄움
     await frame.waitForTimeout(100);
+    count++;
   }
 
   // 링크 카드 삽입 (하단)

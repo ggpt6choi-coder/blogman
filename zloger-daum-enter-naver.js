@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
-const { logWithTime, getAdItemLink, getCoupangLink, writeStyledLink, resetStyle } = require('./common');
+const { logWithTime, getAdItemLink, insertLinkAndRemoveUrl } = require('./common');
 const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
@@ -151,34 +151,23 @@ async function writeBlog({
   // content가 배열(newArticle 구조)일 경우 각 소제목+내용 순차 입력
   await frame.type(contentSpanSelector, title, { delay: 40 });
 
-  // 📸 공정위 이미지 업로드
-  // const coupangLink = await getCoupangLink();
-
-  // try {
-  //   if (coupangLink) {
-  //     const sentenceImagePath = path.resolve('image/coupang-sentence.png');
-
-  //     // 파일 선택창 대기
-  //     const fileChooserPromise = page.waitForEvent('filechooser');
-
-  //     // '사진' 버튼 클릭
-  //     await frame.click('button.se-image-toolbar-button');
-
-  //     const fileChooser = await fileChooserPromise;
-  //     await fileChooser.setFiles(sentenceImagePath);
-
-  //     await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
-  //     // await page.keyboard.press('Enter'); // 줄바꿈
-  //     // await frame.waitForTimeout(500);
-  //   }
-  // } catch (e) {
-  //   logWithTime('coupang-sentence.png 업로드 실패:', e.message);
-  // }
-
-  // 📸 이미지 업로드
+  // 공정위문구사진
   try {
-    const imagePath = path.resolve('image/sentence.png');
+    const sentenceImagePath = path.resolve('image/sentence.png');
+    // 파일 선택창 대기
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    // '사진' 버튼 클릭
+    await frame.click('button.se-image-toolbar-button');
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(sentenceImagePath);
+    await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
+    await frame.waitForTimeout(500);
+  } catch (e) {
+    console.log('sentence.png 업로드 실패:', e.message);
+  }
 
+  // 📸 이미지 업로드 (맨 위)
+  try {
     // 파일 선택창 대기
     const fileChooserPromise = page.waitForEvent('filechooser');
 
@@ -253,60 +242,33 @@ async function writeBlog({
     logWithTime('이미지 업로드 실패 (버튼을 못 찾았거나 파일 문제):', e.message);
   }
 
-  // 링크 카드 삽입 (상단) - 제거됨
-  // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-  // await frame.waitForTimeout(2000);
-
-
-
-  if (Array.isArray(content)) {
-    // 🔄 '개인적인 생각' 섹션을 맨 앞으로 이동 (강제 적용)
-    const thoughtIndex = content.findIndex(item => item.title && item.title.includes('개인적인 생각'));
-    if (thoughtIndex > 0) {
-      const [thoughtSection] = content.splice(thoughtIndex, 1);
-      content.unshift(thoughtSection);
-    }
-
-    for (const [i, section] of content.entries()) {
-      // 쿠팡링크 추가 : 1번째(인덱스 0), 3번째(인덱스 2) 문단 체크
-      // if (i === 1 || i === 3) {
-      //   if (coupangLink) {
-      //     const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
-      //     await writeStyledLink(page, frame, `▶[쿠팡 골든박스 특가 구경하세요]◀`, coupangLink);
-      //     await frame.type(titleParagraphSelector, `${todayStr} 단 하루! 선착순!`, { delay: 80 });
-      //     await frame.waitForTimeout(2000);
-      //   }
-      // }
-
-      if (section.title) {
-        await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
-        await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
-        await frame.type(contentSpanSelector, section.title, { delay: 40 });
-        await frame.click('div.se-canvas-bottom.se-is-clickable-canvas-bottom-button > button', { clickCount: 1, delay: 100 });
-        await frame.waitForTimeout(100);
-      }
-      if (section.content) {
-        // await resetStyle(frame);
-        await frame.type(contentSpanSelector, section.content, { delay: 10 });
-        await page.keyboard.press('Enter');
-        await frame.waitForTimeout(200);
-      }
-      // 소제목/내용 사이 구분을 위해 한 줄 띄움
-      await page.keyboard.press('Enter');
+  for (const [i, section] of content.entries()) {
+    if (section.title) {
+      await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
+      await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
+      await frame.type(contentSpanSelector, section.title, { delay: 40 });
+      await frame.click('div.se-canvas-bottom.se-is-clickable-canvas-bottom-button > button', { clickCount: 1, delay: 100 });
       await frame.waitForTimeout(100);
-
-      // 🔄 '개인적인 생각' 섹션 작성 후 제품 URL 삽입
-      // if (section.title && section.title.includes('개인적인 생각')) {
-      //   await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-      //   await frame.waitForTimeout(2000);
-      // }
     }
+    if (section.content) {
+      // await resetStyle(frame);
+      await frame.type(contentSpanSelector, section.content, { delay: 10 });
+      await page.keyboard.press('Enter');
+      await frame.waitForTimeout(200);
+    }
+
+    if (count === 0 || count === 1) {
+      await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+      await frame.waitForTimeout(2000);
+    }
+
+    // 소제목/내용 사이 구분을 위해 한 줄 띄움
+    await frame.waitForTimeout(100);
   }
 
   // 링크 카드 삽입 (하단)
-  // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-  // await frame.waitForTimeout(2000);
-  // await page.keyboard.press('Enter');
+  await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+  await frame.waitForTimeout(2000);
 
   // 해시태그 입력 (본문 맨 끝)
   if (hashTag && hashTag.length > 0) {

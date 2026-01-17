@@ -5,7 +5,7 @@ const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수
@@ -147,7 +147,7 @@ async function writeBlog({
         await frame.waitForTimeout(200);
       }
 
-      if (count === 0) {
+      if (count === 0 || count === 1) {
         await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
         await frame.waitForTimeout(2000);
       }
@@ -157,7 +157,6 @@ async function writeBlog({
     }
   }
   // 링크 카드 삽입 (하단)
-  await page.keyboard.press('Enter');
   await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
   await frame.waitForTimeout(4000);
 

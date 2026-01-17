@@ -145,9 +145,7 @@ async function writeBlog({
       }
       if (section.content) {
         await frame.type(contentSpanSelector, section.content, { delay: 10 });
-        // if (count !== 0 && count !== 1) {
         await page.keyboard.press('Enter');
-        // }
         await frame.waitForTimeout(200);
       }
 
@@ -155,6 +153,7 @@ async function writeBlog({
         await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
         await frame.waitForTimeout(2000);
       }
+
       // 소제목/내용 사이 구분을 위해 한 줄 띄움
       await frame.waitForTimeout(100);
       count++;

@@ -1,23 +1,13 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink, insertLinkAndRemoveUrl } = require('./common');
+const { naverLogin, checkExecutionTime } = require('./common-write');
 const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
-const path = require('path');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
-// ==========================
-// 🔵 네이버 로그인 함수
-// ==========================
-async function naverLogin(page) {
-  await page.goto('https://nid.naver.com/nidlogin.login');
-  await page.fill('#id', process.env.NAVER_ID_JI_2);
-  await page.fill('#pw', process.env.NAVER_PW_JI_2.replace(/"/g, ''));
-  await page.click('#log\\.login');
-  await page.waitForNavigation();
-}
 
 // ==========================
 // 🔵 블로그 글쓰기 함수
@@ -33,6 +23,7 @@ async function writeBlog({
   idx = 0, // 예약 간격을 위한 인덱스(기본값 0)
 }) {
   // 📸 썸네일 생성 (글쓰기 페이지 이동 전)
+  const path = require('path');
   const thumbnailPath = path.resolve(`image/thumbnail_${Date.now()}.png`);
   try {
     await generateThumbnail(page, title, thumbnailPath);
@@ -89,6 +80,7 @@ async function writeBlog({
 
   // 공정위문구사진
   try {
+    const path = require('path');
     const sentenceImagePath = path.resolve('image/sentence.png');
     // 파일 선택창 대기
     const fileChooserPromise = page.waitForEvent('filechooser');
@@ -123,7 +115,7 @@ async function writeBlog({
         fs.unlinkSync(thumbnailPath);
       }
     } catch (delErr) {
-      logWithTime('썸네일 삭제 실패:', delErr.message);
+      console.log('썸네일 삭제 실패:', delErr.message);
     }
 
     // 📸 대표 이미지 설정 (썸네일 업로드 직후)
@@ -218,6 +210,7 @@ async function writeBlog({
 
   // 📸 캐릭터 이미지 업로드 및 대표 이미지 설정
   try {
+    const path = require('path');
     const charImagePath = path.resolve(`image/${blogName}/${new Date().getDay()}.png`);
 
     // 파일 선택창 대기
@@ -231,42 +224,33 @@ async function writeBlog({
 
     await frame.waitForTimeout(3000); // 업로드 대기
 
-    // 업로드된 이미지 선택 (마지막 이미지 - 썸네일/캐릭터)
-    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 마지막 것
-    // const images = await frame.$$('.se-module-image');
-    // logWithTime(`이미지 개수 확인: ${images.length}`);
+    // 업로드된 이미지 선택 (첫 번째 이미지 - 썸네일)
+    // se-image-container 또는 se-module-image 클래스를 가진 요소 중 첫 번째 것
+    const images = await frame.$$('.se-module-image');
+    if (images.length > 0) {
+      const firstImage = images[0];
+      await firstImage.click();
+      await frame.waitForTimeout(1000);
 
-    // if (images.length > 0) {
-    //   const lastImage = images[images.length - 1];
-    //   await lastImage.click();
-    //   await frame.waitForTimeout(1000);
+      // 대표 이미지 버튼 클릭
+      // 툴바가 뜨면 '대표' 버튼을 찾음
+      const repBtnSelector = 'button.se-toolbar-option-visible-representative-button';
+      const repBtn = await frame.$(repBtnSelector);
 
-    //   // 대표 이미지 버튼 클릭
-    //   // 툴바가 뜨면 '대표' 버튼을 찾음
-    //   const repBtnSelector = 'button.se-toolbar-option-visible-representative-button';
-    //   const repBtn = await frame.$(repBtnSelector);
-
-    //   if (repBtn) {
-    //     logWithTime('대표 버튼 찾음, 클릭');
-    //     await repBtn.click();
-    //   } else {
-    //     // 클래스로 못 찾으면 텍스트로 시도
-    //     const buttons = await frame.$$('button');
-    //     let clicked = false;
-    //     for (const btn of buttons) {
-    //       const text = await btn.textContent();
-    //       if (text && text.trim() === '대표') {
-    //         logWithTime('대표 버튼(텍스트) 찾음, 클릭');
-    //         await btn.click();
-    //         clicked = true;
-    //         break;
-    //       }
-    //     }
-    //     if (!clicked) logWithTime('대표 버튼을 찾지 못했습니다.');
-    //   }
-    // } else {
-    //   logWithTime('선택할 이미지가 없습니다.');
-    // }
+      if (repBtn) {
+        await repBtn.click();
+      } else {
+        // 클래스로 못 찾으면 텍스트로 시도
+        const buttons = await frame.$$('button');
+        for (const btn of buttons) {
+          const text = await btn.textContent();
+          if (text && text.includes('대표')) {
+            await btn.click();
+            break;
+          }
+        }
+      }
+    }
   } catch (e) {
     console.log('캐릭터 이미지 업로드 또는 대표 설정 실패:', e.message);
   }
@@ -311,7 +295,7 @@ async function writeBlog({
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
 
   // 4. 카테고리 설정 (연예)
-  const categoryName = '연예';
+  const categoryName = '연예기사';
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
   await frame.click(
     `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
@@ -329,16 +313,7 @@ async function writeBlog({
 
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/zloger_daum_entertainment_time_check.json';
-  const timeRes = await _fetch(TIME_CHECK_URL);
-  const timeData = await timeRes.json();
-  const createdTime = new Date(timeData.created);
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: daum_entertainment_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
-    process.exit(0);
-  }
+  await checkExecutionTime('zloger_daum_enter_time_check.json', 2);
 
   //시작
   const browser = await chromium.launch({
@@ -359,7 +334,7 @@ async function writeBlog({
     await dialog.accept();
   });
   logWithTime('시작');
-  await naverLogin(page);
+  await naverLogin(page, process.env.NAVER_ID_JI_2, process.env.NAVER_PW_JI_2);
   logWithTime('로그인 완료');
   // news.json에서 로커엘 있는거 데이터 읽기
   // const fs = require('fs');

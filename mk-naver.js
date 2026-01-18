@@ -1,86 +1,12 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink } = require('./common');
+const { naverLogin, checkExecutionTime } = require('./common-write');
 const { generateThumbnail } = require('./image-generator');
 const fetch = require("node-fetch");
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
-
-// ==========================
-// 네이버 로그인 함수
-// ==========================
-async function naverLogin(page) {
-  await page.goto('https://nid.naver.com/nidlogin.login');
-  await page.fill('#id', process.env.NAVER_ID_2);
-  await page.fill('#pw', process.env.NAVER_PW_2.replace(/"/g, ''));
-  await page.click('#log\\.login');
-  await page.waitForNavigation();
-}
-
-// ==========================
-// 🔵 링크 카드 처리 함수
-// ==========================
-async function insertLinkAndRemoveUrl(frame, page, selector, url) {
-  if (!url) return;
-
-  // 1. URL 입력 및 엔터 (링크 카드 생성 유도)
-  await frame.type(selector, url, { delay: 40 });
-  await page.keyboard.press('Enter');
-
-  // 2. 링크 카드 생성 대기 (최대 10초)
-  try {
-    // .se-module-oglink 또는 .se-oglink-info 등 링크 카드 관련 클래스 대기
-    await frame.waitForSelector('.se-module-oglink, .se-oglink-info', { timeout: 10000 });
-
-    // 3. 카드가 생성되면 URL 텍스트 삭제
-    // 전략: URL 텍스트를 포함한 요소를 찾아 클릭 후 삭제 (화살표 이동보다 확실함)
-    try {
-      // URL 텍스트가 포함된 span을 찾음
-      const urlElement = frame.locator('p.se-text-paragraph span', { hasText: url }).last();
-      if (await urlElement.count() > 0) {
-        await urlElement.click(); // 커서 이동
-        await frame.waitForTimeout(200);
-
-        // 줄 전체 선택 (End -> Shift+Home) 후 삭제
-        await page.keyboard.press('End');
-        await page.keyboard.press('Shift+Home');
-        await frame.waitForTimeout(100);
-        await page.keyboard.press('Backspace');
-        await frame.waitForTimeout(300);
-      } else {
-        // 요소를 못 찾은 경우: 화살표 네비게이션 시도 (카드 위로 두 번 이동)
-        // 기존에 한 번만 위로 갔더니 카드가 지워지는 현상 발생 -> 두 번 위로 이동
-        await page.keyboard.press('ArrowUp');
-        await page.keyboard.press('ArrowUp');
-        await frame.waitForTimeout(200);
-        await page.keyboard.press('End');
-        await page.keyboard.press('Shift+Home');
-        await page.keyboard.press('Backspace');
-      }
-    } catch (delErr) {
-      console.log('URL 텍스트 삭제 실패:', delErr.message);
-    }
-
-    // 4. 다시 맨 아래로 이동하여 다음 작성 준비
-    // se-canvas-bottom 클릭이 가장 확실하게 맨 아래로 커서를 보냄
-    try {
-      await frame.click('div.se-canvas-bottom');
-    } catch (clickErr) {
-      // canvas-bottom 클릭 실패 시 화살표로 이동
-      await page.keyboard.press('ArrowDown');
-      await page.keyboard.press('ArrowDown');
-    }
-    await frame.waitForTimeout(300);
-    await page.keyboard.press('Enter'); // 확실하게 줄바꿈
-
-  } catch (e) {
-    console.log('링크 카드 생성 실패 또는 시간 초과 (URL 텍스트 유지됨):', e.message);
-    // 실패 시 그냥 엔터 한 번 더 치고 진행
-    await page.keyboard.press('Enter');
-  }
-  await frame.waitForTimeout(1000);
-}
 
 // ==========================
 // 블로그 글쓰기 함수
@@ -370,16 +296,7 @@ async function writeBlog({
 // ==========================
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/mk_time_check.json';
-  const timeRes = await _fetch(TIME_CHECK_URL);
-  const timeData = await timeRes.json();
-  const createdTime = new Date(timeData.created);
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: mk_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
-    process.exit(0);
-  }
+  await checkExecutionTime('mk_time_check.json', 2);
 
   //시작
   const browser = await chromium.launch({
@@ -400,7 +317,7 @@ async function writeBlog({
     await dialog.accept();
   });
   logWithTime('시작');
-  await naverLogin(page);
+  await naverLogin(page, process.env.NAVER_ID_2, process.env.NAVER_PW_2);
   logWithTime('로그인 완료');
 
   // 카테고리명 인자 받아서 해당 JSON 파일 읽기

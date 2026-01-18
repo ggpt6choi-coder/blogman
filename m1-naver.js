@@ -1,22 +1,13 @@
 require('dotenv').config();
 const { chromium } = require('playwright');
 const { logWithTime, getAdItemLink, insertLinkAndRemoveUrl } = require('./common');
+const { naverLogin, checkExecutionTime } = require('./common-write');
 const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
-// ==========================
-// 🔵 네이버 로그인 함수
-// ==========================
-async function naverLogin(page) {
-  await page.goto('https://nid.naver.com/nidlogin.login');
-  await page.fill('#id', process.env.NAVER_ID_M1);
-  await page.fill('#pw', process.env.NAVER_PW_M1.replace(/"/g, ''));
-  await page.click('#log\\.login');
-  await page.waitForNavigation();
-}
 
 // ==========================
 // 🔵 블로그 글쓰기 함수
@@ -276,16 +267,7 @@ async function writeBlog({
 
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  const TIME_CHECK_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m1_time_check.json';
-  const timeRes = await _fetch(TIME_CHECK_URL);
-  const timeData = await timeRes.json();
-  const createdTime = new Date(timeData.created);
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  if (!(createdTime >= twoHoursAgo && createdTime <= now)) {
-    logWithTime('실행 조건 불만족: m1_time_check.json의 created 값이 2시간 이내가 아닙니다.', '❌')
-    process.exit(0);
-  }
+  await checkExecutionTime('m1_time_check.json', 2);
 
   //시작
   const browser = await chromium.launch({
@@ -306,7 +288,7 @@ async function writeBlog({
     await dialog.accept();
   });
   logWithTime('시작');
-  await naverLogin(page);
+  await naverLogin(page, process.env.NAVER_ID_M1, process.env.NAVER_PW_M1);
   logWithTime('로그인 완료');
   // news.json에서 로커엘 있는거 데이터 읽기
   // const fs = require('fs');

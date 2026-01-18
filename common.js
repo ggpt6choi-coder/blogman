@@ -1,7 +1,4 @@
 const axios = require('axios');
-// const fs = require('fs');
-
-// ... (existing helper functions) ...
 
 const getCoupangLink = async () => {
   const moment = require('moment');
@@ -97,20 +94,6 @@ const loadLinks = async () => {
     return [];
   }
 };
-
-//✅ 네이버 커넥트 URL 가져오는 함수(로컬)
-// JSON 파일에서 링크를 불러오는 함수
-// const loadLinks = () => {
-//   return new Promise((resolve, reject) => {
-//     fs.readFile('adv-item-links.json', 'utf8', (err, data) => {
-//       if (err) {
-//         reject(err);
-//       } else {
-//         resolve(JSON.parse(data).links); // links 배열만 반환
-//       }
-//     });
-//   });
-// };
 
 // getAdItemLink 함수 수정 (비동기 처리)
 const getAdItemLink = async () => {

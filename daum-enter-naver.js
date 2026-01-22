@@ -78,19 +78,19 @@ async function writeBlog({
   await frame.type(contentSpanSelector, title, { delay: 40 });
 
   // 공정위문구사진
-  try {
-    const sentenceImagePath = path.resolve('image/sentence.png');
-    // 파일 선택창 대기
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    // '사진' 버튼 클릭
-    await frame.click('button.se-image-toolbar-button');
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(sentenceImagePath);
-    await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
-    await frame.waitForTimeout(500);
-  } catch (e) {
-    console.log('sentence.png 업로드 실패:', e.message);
-  }
+  // try {
+  //   const sentenceImagePath = path.resolve('image/sentence.png');
+  //   // 파일 선택창 대기
+  //   const fileChooserPromise = page.waitForEvent('filechooser');
+  //   // '사진' 버튼 클릭
+  //   await frame.click('button.se-image-toolbar-button');
+  //   const fileChooser = await fileChooserPromise;
+  //   await fileChooser.setFiles(sentenceImagePath);
+  //   await frame.waitForTimeout(2000); // 업로드 및 렌더링 대기
+  //   await frame.waitForTimeout(500);
+  // } catch (e) {
+  //   console.log('sentence.png 업로드 실패:', e.message);
+  // }
 
   // 📸 이미지 업로드 (맨 위)
   try {
@@ -138,8 +138,8 @@ async function writeBlog({
       }
 
       if (count === 0 || count === 1) {
-        await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-        await frame.waitForTimeout(2000);
+        // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+        // await frame.waitForTimeout(2000);
       }
       // 소제목/내용 사이 구분을 위해 한 줄 띄움
       await frame.waitForTimeout(100);
@@ -147,8 +147,8 @@ async function writeBlog({
     }
   }
   // 링크 카드 삽입 (하단)
-  await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
-  await frame.waitForTimeout(4000);
+  // await insertLinkAndRemoveUrl(frame, page, contentSpanSelector, await getAdItemLink());
+  // await frame.waitForTimeout(4000);
 
   // 해시태그 입력 (본문 맨 끝)
   if (hashTag && hashTag.length > 0) {

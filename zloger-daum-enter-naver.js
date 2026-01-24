@@ -313,7 +313,7 @@ async function writeBlog({
 
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  await checkExecutionTime('zloger_daum_enter_time_check.json', 2);
+  await checkExecutionTime('zloger_daum_entertainment_time_check.json', 2);
 
   //시작
   const browser = await chromium.launch({

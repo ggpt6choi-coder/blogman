@@ -37,3 +37,8 @@ jobs:
         run: |
           echo "Current Time (UTC): $(date)"
           echo "Expected KST Time: $(date -d '+9 hours')"
+
+      - name: Trigger n8n Webhook
+        if: success()
+        run: |
+          curl -v -f "https://tvrijut9q6bj0djua9udpg9v.hooks.n8n.cloud/webhook/08849ccb-5be9-43cf-a86c-f4bced4512b2"

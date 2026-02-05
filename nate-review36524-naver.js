@@ -270,8 +270,8 @@ async function writeBlog({
     int: '세계',
     its: 'IT/과학',
   };
-  // const categoryName = typeMap[type] || type;
-  const categoryName = '일상';
+  const categoryName = typeMap[type] || type;
+  // const categoryName = '일상';
   await frame.click('button[aria-label="카테고리 목록 버튼"]');
   await frame.click(
     `span[data-testid^="categoryItemText_"]:text("${categoryName}")`

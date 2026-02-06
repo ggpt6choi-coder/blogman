@@ -81,3 +81,7 @@ jobs:
             echo "No changes to commit"
           fi
 
+      - name: Trigger Webhook
+        if: success()
+        run: |
+          curl -v -f "${{ secrets.HLOGER_HOOK }}"

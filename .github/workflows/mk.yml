@@ -63,6 +63,10 @@ jobs:
         env:
           GEMINI_API_KEY_FASTMAN: ${{ secrets.GEMINI_API_KEY_FASTMAN }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      - name: Trigger Webhook
+        if: success()
+        run: |
+          curl -v -f "${{ secrets.GUSDN_HOOK }}"
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()

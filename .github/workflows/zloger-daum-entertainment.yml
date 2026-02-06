@@ -86,5 +86,5 @@ jobs:
       - name: Trigger Webhook
         if: success()
         run: |
-          curl -v -f "https://unscalded-landlocked-roman.ngrok-free.dev/webhook/6811977a-f9da-4ac4-a531-0f8ab2be8378"
+          curl -v -f "${{ secrets.HLOGER_HOOK }}"
 

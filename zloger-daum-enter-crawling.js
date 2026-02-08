@@ -52,8 +52,8 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         els => Array.from(new Set(els.map(e => e.href))) // 중복 제거
     );
     // 뉴스 리스트 합치기
-    // newsPosts.push(...newsPosts2);
-    toProcessLinks = newsPosts;
+    newsPosts.push(...newsPosts2);
+    // toProcessLinks = newsPosts;
 
     // 조회 시간 1시간 이내 기사만 필터링
     const toProcessLinks = newsPosts.filter(url => {

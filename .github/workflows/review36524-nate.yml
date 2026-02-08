@@ -54,10 +54,6 @@ jobs:
           GEMINI_API_KEY_REVIEW36524: ${{ secrets.GEMINI_API_KEY_REVIEW36524 }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       # 데이터 파일과 로그 아티팩트 업로드
-      - name: Trigger Webhook
-        if: success()
-        run: |
-          curl -v -f "${{ secrets.REVIEW_HOOK }}"
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,3 +80,7 @@ jobs:
             echo "No changes to commit"
           fi
 
+      - name: Trigger Webhook
+        if: success()
+        run: |
+          curl -v -f "${{ secrets.REVIEW_HOOK }}" 

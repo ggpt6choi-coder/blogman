@@ -58,10 +58,7 @@ jobs:
         env:
           GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      - name: Trigger Webhook
-        if: success()
-        run: |
-          curl -v -f "${{ secrets.SU_HOOK }}"
+
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()
@@ -88,4 +85,9 @@ jobs:
           else
             echo "No changes to commit"
           fi
+
+      - name: Trigger Webhook
+        if: success()
+        run: |
+          curl -v -f "${{ secrets.SU_HOOK }}"
 

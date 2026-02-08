@@ -84,4 +84,4 @@ jobs:
       - name: Trigger Webhook
         if: success()
         run: |
-          curl -v -f "${{ secrets.HLOGER_HOOK }}"
+          curl -v -f "${{ secrets.JI_WEBHOOK }}"

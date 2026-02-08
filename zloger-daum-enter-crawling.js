@@ -68,7 +68,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     const results = [];
     for (const link of toProcessLinks) {
         logWithTime(`크롤링 중...[${count}/${toProcessLinks.length}] ${link}`, '🔍');
-        // if (count > 13) continue;
+        if (count > 15) continue;
         count++;
         // 2. 기사별 제목, 기사 크롤링
         let title = '';

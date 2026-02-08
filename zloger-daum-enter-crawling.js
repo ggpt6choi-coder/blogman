@@ -56,19 +56,19 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     toProcessLinks = newsPosts;
 
     // 조회 시간 1시간 이내 기사만 필터링
-    // const toProcessLinks = newsPosts.filter(url => {
-    //     const match = url.match(/(\d{17})$/); // URL에서 뒤의 숫자 부분만 추출
-    //     if (!match) return false; // 숫자 없으면 제외
-    //     const timestamp = match[1];
-    //     return isWithinLastHour(timestamp);
-    // });
+    const toProcessLinks = newsPosts.filter(url => {
+        const match = url.match(/(\d{17})$/); // URL에서 뒤의 숫자 부분만 추출
+        if (!match) return false; // 숫자 없으면 제외
+        const timestamp = match[1];
+        return isWithinLastHour(timestamp);
+    });
 
     // 기사 크롤링 시작
     let count = 1;
     const results = [];
     for (const link of toProcessLinks) {
         logWithTime(`크롤링 중...[${count}/${toProcessLinks.length}] ${link}`, '🔍');
-        if (count > 13) continue;
+        // if (count > 13) continue;
         count++;
         // 2. 기사별 제목, 기사 크롤링
         let title = '';

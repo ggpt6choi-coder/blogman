@@ -42,3 +42,8 @@ jobs:
       #   if: success()
       #   run: |
       #     curl -v -f "https://tvrijut9q6bj0djua9udpg9v.hooks.n8n.cloud/webhook/08849ccb-5be9-43cf-a86c-f4bced4512b2"
+
+      - name: Trigger Webhook
+        if: success()
+        run: |
+          curl -v -f "${{ secrets.REVIEW_HOOK }}"

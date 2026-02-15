@@ -301,7 +301,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         logWithTime('data 디렉터리 생성됨');
     }
     fs.writeFileSync(
-        `${dirPath}/m3.json`,
+        `${dirPath}/m3_data.json`,
         JSON.stringify(newsArr, null, 2),
         'utf-8'
     );

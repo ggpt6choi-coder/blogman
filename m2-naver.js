@@ -296,6 +296,7 @@ async function writeBlog({
   let response;
   let newsList;
 
+  logWithTime(`isGithubAction = ${isGithubAction}`);
   if (isGithubAction) {
     // 외부 URL에서 newsList 데이터 가져오기 (github raw)
     response = await _fetch(NEWS_JSON_URL);

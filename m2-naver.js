@@ -295,7 +295,7 @@ async function writeBlog({
   const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m2_data.json';
   let response;
   let newsList;
-
+  logWithTime('test');
   logWithTime(`isGithubAction = ${isGithubAction}`);
   if (isGithubAction) {
     // 외부 URL에서 newsList 데이터 가져오기 (github raw)

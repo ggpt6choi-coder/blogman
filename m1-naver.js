@@ -298,10 +298,10 @@ async function writeBlog({
   logWithTime('로그인 완료');
   // nate.json에서 로커엘 있는거 데이터 읽기
   const fs = require('fs');
-  const newsList = JSON.parse(fs.readFileSync('./data/m1.json', 'utf-8'));
+  const newsList = JSON.parse(fs.readFileSync('./data/m1_data.json', 'utf-8'));
 
   // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-  // const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m1.json';
+  // const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m1_data.json';
   // const response = await _fetch(NEWS_JSON_URL);
   // const newsList = await response.json();
 

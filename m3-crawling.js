@@ -19,15 +19,15 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
 }
 
 (async () => {
-    if (!process.env.GEMINI_API_KEY_M1) {
-        logWithTime('GEMINI_API_KEY_M1 is missing in .env');
+    if (!process.env.GEMINI_API_KEY_M3) {
+        logWithTime('GEMINI_API_KEY_M3 is missing in .env');
         process.exit(1);
     }
     const browser = await chromium.launch({ headless: true });
     const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
     // const scList = ['sisa'];
     const newsArr = [];
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_M1);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_M3);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     // 테스트 목적: User-Agent에 서비스명/이메일 포함
     const userAgent = 'MyCrawler/1.0 (contact: your@email.com)';
@@ -170,54 +170,54 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
             if (article !== '[본문 없음]' && article.length !== 0 && title !== '[제목 없음]') {
                 try {
                     const prompt = `
-                    너는 네이버 검색 로직(DIA+)이 선호하는 '전문성과 통찰력을 갖춘 이슈 분석가'야.
-                    주어진 뉴스 기사를 단순 전달하는 게 아니라, 그 이면에 숨겨진 의미와 앞으로 벌어질 일을 예측하여 독자가 "이 블로그는 진짜 전문가네!"라고 느끼게 만드는 포스팅 데이터를 생성해.
+                    너는 네이버 검색 로직(DIA+)이 선호하는 '핵심만 짚어주는 실속파 정보 큐레이터'야.
+                    주어진 뉴스 기사를 재료로 삼아, 바쁜 독자들이 "이 블로그 하나면 정리 끝이네!"라고 느낄 수 있도록 **핵심 정보와 실질적인 이득** 위주로 포스팅 데이터를 생성해.
 
                     [필수 출력 포맷: JSON]
                     {
-                        "newTitle": "메인키워드가 포함된 클릭을 부르는 제목 (특수문자 제외)",
+                        "newTitle": "메인키워드가 포함된 깔끔한 정보성 제목 (특수문자 제외)",
                         "newArticle": [
                             {
-                                "title": "사건의 발단: 도대체 무슨 일이 일어났나?",
-                                "content": "독자의 호기심을 자극하며 사건의 개요를 설명하는 도입부 (줄글 형태, 400자 이상)"
+                                "title": "30초 요약: 바쁜 분들을 위한 핵심 정리",
+                                "content": "기사의 전체 내용을 3~4개의 문단으로 나누어, 서론-본론-결론이 딱 떨어지게 요약한 도입부 (400자 이상)"
                             },
                             {
-                                "title": "심층 분석: 왜 이 이슈가 터졌을까?",
-                                "content": "단순 사실 나열이 아닌, 사건의 원인과 배경을 전문가적 시선으로 분석한 본문 (500자 이상)"
+                                "title": "상세 팩트 체크: 무엇이, 왜 중요한가?",
+                                "content": "육하원칙에 의거하여 사건의 디테일을 명확하고 간결하게 설명 (500자 이상)"
                             },
                             {
-                                "title": "놓치면 안 될 디테일과 숨겨진 맥락",
-                                "content": "기사에는 없는 배경지식이나 업계 상황, 연관된 과거 사례 등을 추가하여 풍성하게 작성 (500자 이상)"
+                                "title": "우리에게 미치는 영향 (돈과 생활)",
+                                "content": "이 뉴스가 독자의 지갑(경제)이나 일상 생활에 어떤 영향을 주는지 실리적인 관점에서 서술 (500자 이상)"
                             },
                             {
-                                "title": "향후 전망 및 시사점",
-                                "content": "이 사건이 불러올 파장이나 나의 예측, 독자에게 던지는 묵직한 메시지 (400자 이상)"
+                                "title": "결론 및 대응 가이드",
+                                "content": "그래서 독자가 지금 당장 무엇을 해야 하는지, 혹은 어떤 태도를 취해야 하는지 구체적인 행동 지침 제시 (400자 이상)"
                             },
                             {
-                                "title": "에디터의 한마디",
-                                "content": "분석을 마치며 독자에게 전하는 짧고 강렬한 요약과 제언 (300자 이상)"
+                                "title": "에디터의 한 줄 평",
+                                "content": "전체 내용을 관통하는 촌철살인 한 문장과 마무리 인사 (300자 이상)"
                             }
                         ],
                         "hashTag": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5"],
-                        "sourceCredit": "※ 본 분석글은 [언론사명]의 보도를 참고하여 주관적인 견해를 바탕으로 작성되었습니다."
+                        "sourceCredit": "※ 이 글은 [언론사명]의 기사를 바탕으로 정보 전달을 목적으로 알기 쉽게 정리한 글입니다."
                     }
 
                     [🚀 핵심 전략 1: 무조건 상위 노출되는 제목 법칙]
                     - 기사에서 검색량이 가장 많을 법한 **'메인 키워드'**를 하나 뽑아.
-                    - **NewTitle(제목):** 무조건 **메인 키워드로 문장을 시작**해. (예: "비트코인 폭락 원인과 향후 전망 분석" (O))
-                    - **🚨 특수문자 절대 금지:** 마침표(.), 쉼표(,), 물음표(?), 느낌표(!), 따옴표("), 괄호([]), 하이픈(-) 등 **모든 기호를 쓰지 마.**
-                    - **오직 한글, 영어, 숫자, 띄어쓰기**만 사용해서 깔끔한 평서문이나 명사형으로 끝내.
-                    - 제목 길이는 20~28자 이내로 간결하게.
+                    - **NewTitle(제목):** 무조건 **메인 키워드로 문장을 시작**해.
+                    - **스타일:** 감성적인 제목보다는 **"~정리", "~이유", "~방법", "~팩트체크"** 같이 명확한 정보성 제목으로 지어.
+                    - **🚨 특수문자 절대 금지:** 마침표, 쉼표, 따옴표, 괄호 등 모든 기호를 쓰지 마. 오직 텍스트로만 승부해.
+                    - 예시: "갤럭시S24 출시일 스펙 가격 총정리" (O) / "갤럭시S24 대박 예감!" (X)
 
                     [🚀 핵심 전략 2: 검색 엔진이 사랑하는 본문 패턴]
-                    - **키워드 밀도:** 메인 키워드를 전체 본문(content 합계)에서 **최소 6회 이상, 최대 9회 이하**로 자연스럽게 언급해.
+                    - **키워드 밀도:** 메인 키워드를 전체 본문에서 **최소 6회 이상, 최대 9회 이하**로 자연스럽게 언급해.
                     - **분량 확보:** 전체 글자 수(공백 제외) **2,000자 이상**을 목표로 해. 
-                    - **살 붙이기:** 기사 내용이 짧으면 너의 방대한 지식(배경, 역사, 유사 사례)을 총동원해서 내용을 불려. (절대 기사만 요약하지 마!)
+                    - **가독성:** 줄글로 쓰되, "첫째, ~입니다. 둘째, ~입니다."와 같이 구조화된 문장을 사용하여 가독성을 높여.
 
-                    [✍️ 작성 톤앤매너: '스마트한 지식인' 스타일]
-                    - 1번 프롬프트가 '수다스러운 이웃'이라면, 너는 **'냉철한 분석가'**야.
-                    - 말투: "~했거든요", "~더라고요" 같은 가벼운 구어체 대신, **"~인 것으로 보입니다", "~할 필요가 있습니다", "~주목해야 합니다", "~했습니다"**와 같이 신뢰감 있는 스마트한 어투 사용.
-                    - 감정: "세상에!" 같은 감탄사 금지. 대신 **"흥미로운 점은~", "여기서 우리가 간과하지 말아야 할 것은~"** 같은 논리적 접속사 사용.
+                    [✍️ 작성 톤앤매너: '스마트한 비서' 스타일]
+                    - 말투: 감정을 배제하고 **"~입니다", "~합니다", "~해야 합니다"**와 같은 **정중하고 명료한 합쇼체**를 메인으로 사용. (가끔 "~해요" 섞어 쓰기 가능)
+                    - 내용 전개: 군더더기 없이 **두괄식**으로 중요한 정보부터 제시해.
+                    - 독자 타겟: 정보를 빨리 얻고 싶어 하는 실속파 독자들.
 
                     [입력 데이터]
                     - 원본 제목: ${title}
@@ -301,7 +301,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         logWithTime('data 디렉터리 생성됨');
     }
     fs.writeFileSync(
-        `${dirPath}/m1.json`,
+        `${dirPath}/m3.json`,
         JSON.stringify(newsArr, null, 2),
         'utf-8'
     );
@@ -318,7 +318,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     const seconds = String(kst.getSeconds()).padStart(2, "0");
 
     fs.writeFileSync(
-        `${dirPath}/m1_time_check.json`,
+        `${dirPath}/m3_time_check.json`,
         JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
         'utf-8'
     );

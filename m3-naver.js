@@ -273,7 +273,7 @@ async function writeBlog({
 // ==========================
 (async () => {
   // 외부 time_check.json에서 created 시간 읽기
-  // await checkExecutionTime('m1_time_check.json', 2);
+  // await checkExecutionTime('m3_time_check.json', 2);
 
   //시작
   const browser = await chromium.launch({
@@ -294,14 +294,14 @@ async function writeBlog({
     await dialog.accept();
   });
   logWithTime('시작');
-  await naverLogin(page, process.env.NAVER_ID_M1, process.env.NAVER_PW_M1);
+  await naverLogin(page, process.env.NAVER_ID_M3, process.env.NAVER_PW_M3);
   logWithTime('로그인 완료');
   // nate.json에서 로커엘 있는거 데이터 읽기
   const fs = require('fs');
-  const newsList = JSON.parse(fs.readFileSync('./data/m1.json', 'utf-8'));
+  const newsList = JSON.parse(fs.readFileSync('./data/m3.json', 'utf-8'));
 
   // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-  // const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m1.json';
+  // const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m3.json';
   // const response = await _fetch(NEWS_JSON_URL);
   // const newsList = await response.json();
 
@@ -313,7 +313,7 @@ async function writeBlog({
 
     const blogData = {
       page,
-      blogName: process.env.BLOG_NAME_M1,
+      blogName: process.env.BLOG_NAME_M3,
       title: news.newTitle || news.title,
       content: news.newArticle,
       url: news.url,

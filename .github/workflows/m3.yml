@@ -1,13 +1,12 @@
-name: m1-crawling [mlog****]
+name: m3-crawling [neews2]
 
 on:
-  #schedule:
-    #- cron: '0 23 * * *'   # 10시 (KST)
-    #- cron: '0 1 * * *'   # 11시 (KST)
-    #- cron: '0 3 * * *'   # 12시 (KST)
-    #- cron: '0 5 * * *'   # 14시 (KST)
-    #- cron: '0 7 * * *'   # 16시 (KST)
-    #- cron: '0 9 * * *'  # 18시 (KST)
+  # schedule:
+    # - cron: '0 23 * * *'   # 10시 (KST)
+    # - cron: '0 1 * * *'   # 11시 (KST)
+    # - cron: '0 3 * * *'   # 12시 (KST)
+    # - cron: '0 5 * * *'   # 14시 (KST)
+    # - cron: '0 7 * * *'   # 16시 (KST)
 
   workflow_dispatch:
 
@@ -53,11 +52,12 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run m1-crawling.js
-        run: node m1-crawling.js > m1_crawl_log.txt 2>&1
+      - name: Run m3-crawling.js
+        run: node m3-crawling.js > m3_crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY_M1: ${{ secrets.GEMINI_API_KEY_M1 }}
+          GEMINI_API_KEY_M3: ${{ secrets.GEMINI_API_KEY_M3 }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
       # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()
@@ -65,7 +65,7 @@ jobs:
         with:
           name: crawl-artifacts
           path: |
-            m1_crawl_log.txt
+            m3_crawl_log.txt
             data/**
             mainFrame_not_found_*.png
 
@@ -88,4 +88,5 @@ jobs:
       - name: Trigger Webhook
         if: success()
         run: |
-          curl -v -f "${{ secrets.M1_HOOK }}"
+          curl -v -f "${{ secrets.M3_HOOK }}"
+

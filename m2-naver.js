@@ -6,7 +6,6 @@ const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
-const isGithubAction = process.env.IS_GITHUB_ACTIONS === 'true';
 const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
 
 
@@ -292,20 +291,14 @@ async function writeBlog({
   await naverLogin(page, process.env.NAVER_ID_M2, process.env.NAVER_PW_M2);
   logWithTime('로그인 완료');
 
-  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m2_data.json';
-  let response;
-  let newsList;
-  logWithTime('test');
-  logWithTime(`isGithubAction = ${isGithubAction}`);
-  if (isGithubAction) {
-    // 외부 URL에서 newsList 데이터 가져오기 (github raw)
-    response = await _fetch(NEWS_JSON_URL);
-    newsList = await response.json();
-  } else {
-    // news.json에서 로커엘 있는거 데이터 읽기
-    newsList = JSON.parse(fs.readFileSync('./data/m2_data.json', 'utf-8'));
-  }
+  // news.json에서 로커엘 있는거 데이터 읽기
+  // const fs = require('fs');
+  // const newsList = JSON.parse(fs.readFileSync('./data/m2_data.json', 'utf-8'));
 
+  // 외부 URL에서 newsList 데이터 가져오기 (github raw)
+  const NEWS_JSON_URL = 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/m2_data.json';
+  const response = await _fetch(NEWS_JSON_URL);
+  const newsList = await response.json();
 
   let errCount = 0;
   for (let i = 0; i < newsList.length; i++) {

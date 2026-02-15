@@ -1,7 +1,7 @@
 name: m2-crawling [neews2]
 
 on:
-  schedule:
+  # schedule:
     # - cron: '0 23 * * *'   # 10시 (KST)
     # - cron: '0 1 * * *'   # 11시 (KST)
     # - cron: '0 3 * * *'   # 12시 (KST)

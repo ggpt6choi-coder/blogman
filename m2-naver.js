@@ -225,9 +225,7 @@ async function writeBlog({
     // 실패 시 기존 ID 방식 시도
     await frame.click('#radio_time2');
   }
-  await frame.waitForTimeout(500); // UI 반영 대기
-
-
+  await frame.waitForTimeout(1500); // UI 반영 대기
 
   // 3. 시간설정 (2개씩 같은 시간)
   const group = Math.floor(idx / 2);
@@ -247,13 +245,7 @@ async function writeBlog({
   const minuteStr = minute.toString().padStart(2, '0');
   await frame.selectOption('select.hour_option__J_heO', hourStr);
   await frame.selectOption('select.minute_option__Vb3xB', minuteStr);
-
-  // 4. 카테고리 설정 (연예)
-  // const categoryName = '연예기사';
-  // await frame.click('button[aria-label="카테고리 목록 버튼"]');
-  // await frame.click(
-  //   `span[data-testid^="categoryItemText_"]:text("${categoryName}")`
-  // );
+  await frame.waitForTimeout(1500); // UI 반영 대기
 
   // 발행버튼 클릭
   const finalPublishBtnSelector = 'div.layer_btn_area__UzyKH > div > button';

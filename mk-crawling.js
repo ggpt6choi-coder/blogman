@@ -60,12 +60,12 @@ async function fetchAndExtractXML(url) {
     'https://www.mk.co.kr/rss/50400012/', // 사회
     'https://www.mk.co.kr/rss/50100032/', // 기업·경영
     'https://www.mk.co.kr/rss/30000023/', // 문화·연예
-    'https://www.mk.co.kr/rss/30200030/', // 정치
+    // 'https://www.mk.co.kr/rss/30200030/', // 정치
     'https://www.mk.co.kr/rss/30300018/', // 국제
     'https://www.mk.co.kr/rss/50200011/', // 증권
     'https://www.mk.co.kr/rss/50300009/', // 부동산
     'https://www.mk.co.kr/rss/71000001/', // 스포츠
-    'https://www.mk.co.kr/rss/50700001/', // 게임
+    // 'https://www.mk.co.kr/rss/50700001/', // 게임
   ];
 
 
@@ -86,7 +86,7 @@ async function fetchAndExtractXML(url) {
 
     let count = 0;
     for (const item of items) {
-      if (count > 2) break;
+      if (count >= 2) break;
       count++;
       const page = await browser.newPage();
       let navigationSuccess = false;

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const contentsData = JSON.parse(fs.readFileSync(path.join(__dirname, 'blog-data.json'), 'utf8'));
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================
 // 🔵 네이버 로그인 함수

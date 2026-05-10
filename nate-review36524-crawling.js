@@ -24,7 +24,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         process.exit(1);
     }
     const browser = await chromium.launch({ headless: true });
-    const scList = ['sisa', 'spo', 'ent', 'pol', 'eco', 'soc', 'int', 'its'];
+    const scList = ['sisa', 'spo', 'ent', 'eco', 'soc', 'int', 'its'];
     const newsArr = [];
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_REVIEW36524);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
@@ -74,8 +74,11 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         await page.goto(url);
         const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
         ;
+        let count = 0;
         for (const link of links) {
             if (stopCrawling) break;
+            if (count >= 2) break; // 최대 2개 뉴스만 처리
+            count++;
             logWithTime(`Processing: ${link}`);
             const newPage = await browser.newPage();
             await newPage.setExtraHTTPHeaders({ 'User-Agent': userAgent });

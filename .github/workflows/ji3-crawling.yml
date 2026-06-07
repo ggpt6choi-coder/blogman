@@ -1,18 +1,25 @@
-name: daum-enter-crawling [******cake]
+name: ji3-crawling [blog-ji3]
 
 on:
-  # schedule:
-  # - cron: '0 0 * * *'   # 11시 (KST)
-  #- cron: '0 2 * * *'   # 12시 (KST)
-  #- cron: '0 4 * * *'   # 13시 (KST)
-  #- cron: '0 6 * * *'   # 15시 (KST)
-  #- cron: '0 8 * * *'   # 17시 (KST)
-  #- cron: '0 10 * * *'  # 19시 (KST)
+  schedule:
+    # KST 08:00 ~ 18:00, 30분 간격 (UTC 기준)
+    # KST = UTC + 9h  →  UTC 23:xx ~ 09:xx
+    - cron: "0,30 23 * * *" # KST 08:00, 08:30
+    - cron: "0,30 0 * * *" # KST 09:00, 09:30
+    - cron: "0,30 1 * * *" # KST 10:00, 10:30
+    - cron: "0,30 2 * * *" # KST 11:00, 11:30
+    - cron: "0,30 3 * * *" # KST 12:00, 12:30
+    - cron: "0,30 4 * * *" # KST 13:00, 13:30
+    - cron: "0,30 5 * * *" # KST 14:00, 14:30
+    - cron: "0,30 6 * * *" # KST 15:00, 15:30
+    - cron: "0,30 7 * * *" # KST 16:00, 16:30
+    - cron: "0,30 8 * * *" # KST 17:00, 17:30
+    - cron: "0 9 * * *" # KST 18:00
 
   workflow_dispatch:
 
 permissions:
-  contents: write # ← 이 한 줄이 핵심!
+  contents: write
 
 jobs:
   run-batch:
@@ -23,6 +30,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -53,24 +61,22 @@ jobs:
             npx playwright install --with-deps
           fi
 
-      - name: Run daum-enter-crawling.js
-        run: node daum-enter-crawling.js > daum_entertainment_crawl_log.txt 2>&1
+      - name: Run blog-ji3-crawling.js
+        run: node blog-ji3-crawling.js > ji3_crawl_log.txt 2>&1
         env:
-          GEMINI_API_KEY_HS: ${{ secrets.GEMINI_API_KEY_HS }}
+          GEMINI_API_KEY_M3: ${{ secrets.GEMINI_API_KEY_M3 }}
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-      # 데이터 파일과 로그 아티팩트 업로드
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crawl-artifacts
+          name: ji3-crawl-artifacts
           path: |
-            daum_entertainment_crawl_log.txt
+            ji3_crawl_log.txt
             data/**
-            mainFrame_not_found_*.png
+            blog-ji3-monitor.json
 
-      # data 폴더를 리포지토리에 커밋 & 푸시
       - name: Commit data to repository
         if: always()
         env:
@@ -78,15 +84,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/**
+          git add -f data/** blog-ji3-monitor.json
           if ! git diff --cached --quiet; then
-            git commit -m "자동 업데이트 news data"
+            git commit -m "자동 업데이트: ji3 크롤링 데이터"
             git push -f https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
           else
             echo "No changes to commit"
           fi
-
-      - name: Trigger Webhook
-        if: success()
-        run: |
-          curl -v -f "${{ secrets.SU_HOOK }}"

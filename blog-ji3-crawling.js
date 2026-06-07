@@ -1,0 +1,362 @@
+require('dotenv').config();
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { chromium } = require('playwright');
+const fs = require('fs');
+const { logWithTime, parseGeminiResponse } = require('./common');
+
+// Gemini API 재시도 헬퍼 함수
+async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 2000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await model.generateContent(prompt);
+        } catch (e) {
+            // 503 Service Unavailable or other transient errors
+            if (i === retries - 1) throw e;
+            logWithTime(`Gemini API error (attempt ${i + 1}/${retries}): ${e.message}. Retrying...`);
+            await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+        }
+    }
+}
+
+(async () => {
+    if (!process.env.GEMINI_API_KEY_M3) {
+        logWithTime('GEMINI_API_KEY_M3 is missing in .env');
+        process.exit(1);
+    }
+    const browser = await chromium.launch({ headless: true });
+    const scList = ['ent'];
+    // const scList = ['sisa'];
+    const newsArr = [];
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_M3);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    // 테스트 목적: User-Agent에 서비스명/이메일 포함
+    const userAgent = 'MyCrawler/1.0 (contact: your@email.com)';
+
+    // 요청 간 5~15초 랜덤 지연 함수
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}${mm}${dd}`;
+
+    // blog-ji3-monitor.json 로드 (없으면 빈 배열로 초기화)
+    const monitorPath = 'blog-ji3-monitor.json';
+    let crawledTitles = [];
+    if (fs.existsSync(monitorPath)) {
+        try {
+            crawledTitles = JSON.parse(fs.readFileSync(monitorPath, 'utf-8'));
+            if (!Array.isArray(crawledTitles)) crawledTitles = [];
+        } catch (e) {
+            logWithTime('blog-ji3-monitor.json 파싱 오류. 빈 배열로 초기화합니다.');
+            crawledTitles = [];
+        }
+    }
+    logWithTime(`모니터 파일 로드 완료: ${crawledTitles.length}개 제목 기록됨`);
+
+    logWithTime('크롤링 시작', '⏰');
+    let stopCrawling = false;
+    for (const sc of scList) {
+        if (stopCrawling) break;
+        const page = await browser.newPage();
+        await page.setExtraHTTPHeaders({ 'User-Agent': userAgent });
+        // 광고/트래킹/이미지 등 불필요한 리소스 요청 차단
+        await page.route('**/*', (route) => {
+            const url = route.request().url();
+            if (
+                url.includes('ads') ||
+                url.includes('pubmatic') ||
+                url.includes('opera.com/pub/sync') ||
+                url.includes('idsync.rlcdn.com') ||
+                url.includes('turn.com') ||
+                url.match(/\\.(gif|jpg|png|svg)$/)
+            ) {
+                return route.abort();
+            }
+            route.continue();
+        });
+        // HTTP 상태, 응답 헤더, 차단 로그 기록
+        page.on('response', async (response) => {
+            const status = response.status();
+            const url = response.url();
+            const headers = response.headers();
+            if (status >= 400) {
+                fs.appendFileSync('crawl-log.txt', `[${new Date().toISOString()}] ${status} ${url} ${JSON.stringify(headers)}\n`);
+            }
+        });
+        const url = `https://news.nate.com/rank/interest?sc=${sc}&p=day&date=${dateStr}`;
+        await page.goto(url);
+        const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
+        let count = 0;
+        for (const link of links) {
+            if (count >= 2) break;
+            count++;
+            if (stopCrawling) break;
+            logWithTime(`Processing: ${link}`);
+            const newPage = await browser.newPage();
+            await newPage.setExtraHTTPHeaders({ 'User-Agent': userAgent });
+            // 광고/트래킹/이미지 등 불필요한 리소스 요청 차단
+            await newPage.route('**/*', (route) => {
+                const url = route.request().url();
+                if (
+                    url.includes('ads') ||
+                    url.includes('pubmatic') ||
+                    url.includes('opera.com/pub/sync') ||
+                    url.includes('idsync.rlcdn.com') ||
+                    url.includes('turn.com') ||
+                    url.match(/\\.(gif|jpg|png|svg)$/)
+                ) {
+                    return route.abort();
+                }
+                route.continue();
+            });
+            // HTTP 상태, 응답 헤더, 차단 로그 기록
+            newPage.on('response', async (response) => {
+                const status = response.status();
+                const url = response.url();
+                const headers = response.headers();
+                if (status >= 400) {
+                    fs.appendFileSync('crawl-log.txt', `[${new Date().toISOString()}] ${status} ${url} ${JSON.stringify(headers)}\n`);
+                }
+            });
+            await newPage.goto(link, { timeout: 150000, waitUntil: 'domcontentloaded' });
+
+            // 캡차 감지 시 즉시 중단
+            if (await newPage.$('input[type="checkbox"][name*="captcha"], .g-recaptcha, iframe[src*="recaptcha"]')) {
+                logWithTime('CAPTCHA 감지됨. 크롤링 중단하고 현재까지 데이터 저장.');
+                stopCrawling = true;
+                await newPage.close();
+                break;
+            }
+
+            // 제목 크롤링
+            let title = '';
+            try {
+                await newPage.waitForSelector('#articleView > h1', { timeout: 5000 });
+                title = await newPage.$eval('#articleView > h1', (el) =>
+                    el.textContent.trim()
+                );
+            } catch (e) {
+                title = '[제목 없음]';
+                try {
+                    await newPage.waitForSelector('#cntArea > h1', { timeout: 5000 });
+                    title = await newPage.$eval('#cntArea > h1', (el) =>
+                        el.textContent.trim()
+                    );
+                } catch (e) {
+                    logWithTime(`title = '[제목 없음]' ${link}`);
+                }
+            }
+
+            // ✅ 중복 제목 체크: 이미 크롤링한 기사면 스킵
+            if (title && title !== '[제목 없음]' && crawledTitles.includes(title)) {
+                logWithTime(`[스킵] 이미 처리된 기사: "${title}"`);
+                await newPage.close();
+                continue;
+            }
+
+            // 본문 크롤링
+            let article = '';
+            try {
+                await newPage.waitForSelector('#realArtcContents', { timeout: 5000 });
+                const html = await newPage.$eval(
+                    '#realArtcContents',
+                    (el) => el.innerHTML
+                );
+                article = html
+                    .replace(/<[^>]+>/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            } catch (e) {
+                article = '[본문 없음]';
+                try {
+                    await newPage.waitForSelector('#articleContetns', { timeout: 5000 });
+                    const html = await newPage.$eval(
+                        '#articleContetns',
+                        (el) => el.innerHTML
+                    );
+                    article = html
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                } catch (e) {
+                    logWithTime(`article = '[본문 없음]' ${link} `);
+                }
+            }
+            // Gemini API로 통합 가공 (제목, 본문, 해시태그)
+            let newTitle = '';
+            let newArticle = '';
+            let hashTag = [];
+
+            if (article !== '[본문 없음]' && article.length !== 0 && title !== '[제목 없음]') {
+                try {
+                    const prompt = `
+                    너는 네이버 홈판(AiRS) 알고리즘에 최적화된 '공감형 이야기꾼 블로거'야.
+                    주어진 뉴스 기사를 재료로, 독자가 피드에서 첫 줄을 보자마자 클릭하고 끝까지 읽고 싶어지는 블로그 포스팅을 작성해.
+                    네이버 홈판은 **완독률, CTR(클릭률), 공감·저장 수**를 핵심 지표로 삼으니 이 세 가지를 극대화하는 방향으로 써줘.
+
+                    [필수 출력 포맷: JSON]
+                    - 결과값은 오직 JSON만 출력해. (앞뒤 잡담, Markdown 코드블록 절대 금지)
+                    - content 내 줄바꿈은 '\\n'으로, 큰따옴표는 '\\"'으로 이스케이프 처리해.
+
+                    {
+                        "newTitle": "공감·호기심을 자극하는 제목 (특수문자 제외, 30자 이내)",
+                        "newArticle": [
+                            {
+                                "title": "피드 훅: 멈추게 만드는 첫 이야기",
+                                "content": "독자가 스크롤을 멈추게 할 강렬한 공감 문장으로 시작. '저도 처음엔 믿기지 않았어요', '이거 보고 진짜 소름 돋았어요' 같은 감성 훅으로 열고, 이 이야기가 왜 지금 이 순간 중요한지를 친구한테 말하듯 풀어줘. (500자 이상)"
+                            },
+                            {
+                                "title": "그래서 무슨 일이 있었냐면요",
+                                "content": "사건·이슈의 전말을 마치 목격자가 옆에서 설명해주듯 생생하게 서술. '~했거든요', '~더라고요', '진짜 놀랍죠?' 같은 구어체를 섞어서 독자가 이탈 없이 읽도록 해줘. 육하원칙 기반이지만 딱딱하지 않게. (600자 이상)"
+                            },
+                            {
+                                "title": "나만 이런 생각 한 거 아니죠?",
+                                "content": "이 이슈에 대한 대중 반응·공감 포인트를 소개하고, 블로거 본인의 솔직한 감상을 곁들여줘. '저는 솔직히 이 부분에서 좀 찡했어요', '여러분은 어떻게 생각하세요?' 같이 독자와 대화하듯 써줘. 댓글·공감을 자연스럽게 유도. (500자 이상)"
+                            },
+                            {
+                                "title": "이게 우리 생활이랑 무슨 상관이에요?",
+                                "content": "이 이슈가 독자 일상(돈, 감정, 관계, 트렌드)에 어떤 파장을 주는지 실질적으로 풀어줘. 추상적 설명 말고, '예를 들어 이런 상황이라면~'처럼 구체적 사례로 연결. (500자 이상)"
+                            },
+                            {
+                                "title": "마무리하며: 오늘도 같이 생각해봐요",
+                                "content": "전체 내용을 따뜻하게 정리하고, 독자에게 질문을 던지거나 응원·공감으로 마무리. '좋아요·댓글로 의견 나눠주세요'처럼 자연스럽게 반응을 유도해. (300자 이상)"
+                            }
+                        ],
+                        "hashTag": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5"]
+                    }
+
+                    [🏠 홈판 노출 핵심 전략 1: 클릭을 부르는 제목]
+                    - 메인 키워드를 제목 앞부분에 배치하되, **궁금증·공감·놀라움**을 자극하는 형태로 써.
+                    - 좋은 예: "OOO 근황 이거 실화인가요", "OOO 이렇게 됐다는 거 다들 알고 계셨어요"
+                    - 나쁜 예: "OOO 팩트체크 총정리" (검색용이라 홈판 CTR 낮음)
+                    - **특수문자 절대 금지**: 오직 한글·영문·숫자·공백만 사용.
+
+                    [🏠 홈판 노출 핵심 전략 2: 완독률을 높이는 글쓰기]
+                    - **도입부 첫 2~3문장**이 피드 미리보기에 노출됨 → 이 부분이 가장 중요. 반드시 감성 훅으로 시작해.
+                    - 전체 글자 수 **2,500자 이상** 목표. 단, 지루하지 않게 스토리 흐름을 유지해.
+                    - 소제목은 딱딱한 명사형보다 **질문형·감탄형**으로 써서 계속 읽고 싶게 만들어.
+                    - 문단 사이에 짧은 감탄·공감 문장("정말 대단하지 않나요?", "저도 이 부분에서 멈췄어요.")을 자연스럽게 삽입.
+
+                    [🏠 홈판 노출 핵심 전략 3: 반응(공감·저장) 유도]
+                    - 글 곳곳에 독자에게 말을 거는 문장 삽입: "여러분은 어떻게 생각하세요?", "공감되시면 좋아요 눌러주세요 😊"
+                    - 마지막 섹션에서 반드시 한 번 이상 댓글·공감 유도 문구를 포함해.
+
+                    [✍️ 톤앤매너: 친한 언니/오빠가 카톡으로 정보 알려주는 느낌]
+                    - 말투: "~했거든요", "~더라고요", "~잖아요", "진짜요?", "완전 공감이에요" 등 구어체 위주.
+                    - 감정 표현 적극 활용 (놀람, 안타까움, 응원, 웃음 등).
+                    - 절대 합쇼체(~입니다, ~합니다)로만 쓰지 마. 딱딱해 보여서 홈판 이탈률 올라감.
+
+                    [입력 데이터]
+                    - 원본 제목: ${title}
+                    - 기사 내용: ${article}
+                    `;
+
+                    const result = await generateContentWithRetry(model, prompt);
+                    const raw = result.response.text().trim();
+
+                    const parsedData = parseGeminiResponse(raw);
+
+                    if (parsedData) {
+                        newTitle = parsedData.newTitle || '[변환 실패]';
+                        newArticle = parsedData.newArticle || '[변환 실패]';
+                        hashTag = parsedData.hashTag || [];
+
+                        // 해시태그 유효성 검사 (기존 로직 유지)
+                        if (Array.isArray(hashTag)) {
+                            const invalidTags = ['본문', '#해시태그2', '알고리즘', '최적', '드리겠습니다.'];
+                            if (hashTag.some(tag => invalidTags.some(invalid => tag.includes(invalid)))) {
+                                hashTag = [];
+                            }
+                        } else {
+                            hashTag = [];
+                        }
+
+                    } else {
+                        newTitle = '[변환 실패]';
+                        newArticle = '[변환 실패]';
+                        hashTag = [];
+                        logWithTime(`JSON parsing failed completely for ${link}`);
+                    }
+
+                    await new Promise((res) => setTimeout(res, 2000));
+
+                } catch (e) {
+                    newTitle = '[변환 실패]';
+                    newArticle = '[변환 실패]';
+                    hashTag = [];
+                    logWithTime(`Gemini processing failed for ${link}`);
+                    const errorLog = `[${new Date().toISOString()}] [Gemini 통합 변환 실패] title: ${title}\nError: ${e && e.stack ? e.stack : e}\n`;
+                    if (!fs.existsSync('error-log')) {
+                        fs.mkdirSync('error-log', { recursive: true });
+                    }
+                    fs.appendFileSync('error-log/gemini-error.log', errorLog, 'utf-8');
+                }
+            } else {
+                newTitle = '[제목 없음]';
+                newArticle = '[본문 없음]';
+                hashTag = [];
+                logWithTime(`Skipping Gemini: Missing title or article for ${link}`);
+            }
+            // 모든 결과 저장 (실패/빈 값 포함)
+            if (
+                newArticle !== '[본문 없음]' &&
+                newTitle !== '[제목 없음]' &&
+                newArticle !== '[변환 실패]' &&
+                newTitle !== '[변환 실패]'
+            ) {
+                newsArr.push({
+                    type: sc,
+                    title,
+                    newTitle,
+                    article,
+                    newArticle,
+                    url: link,
+                    hashTag,
+                });
+                // ✅ 성공한 기사 제목을 monitor 파일에 즉시 기록
+                if (title && title !== '[제목 없음]' && !crawledTitles.includes(title)) {
+                    crawledTitles.push(title);
+                    fs.writeFileSync(monitorPath, JSON.stringify(crawledTitles, null, 2), 'utf-8');
+                    logWithTime(`[모니터] 제목 기록: "${title}"`);
+                }
+            }
+            await newPage.close();
+            // 10 RPM 제한 준수를 위한 지연 (기사당 1회 호출하므로, 기사당 최소 6초 이상 소요되어야 함)
+            // 기존 15~25초 -> 6~10초로 변경 (속도 최적화)
+            await delay(6000 + Math.random() * 4000);
+        }
+        await page.close();
+    }
+    // data 디렉터리 없으면 자동 생성
+    const dirPath = 'data';
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        logWithTime('data 디렉터리 생성됨');
+    }
+    fs.writeFileSync(
+        `${dirPath}/m3_data.json`,
+        JSON.stringify(newsArr, null, 2),
+        'utf-8'
+    );
+
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const kst = new Date(utc + 9 * 60 * 60000);
+    // KST 기준 시각을 구성
+    const year = kst.getFullYear();
+    const month = String(kst.getMonth() + 1).padStart(2, "0");
+    const day = String(kst.getDate()).padStart(2, "0");
+    const hours = String(kst.getHours()).padStart(2, "0");
+    const minutes = String(kst.getMinutes()).padStart(2, "0");
+    const seconds = String(kst.getSeconds()).padStart(2, "0");
+
+    fs.writeFileSync(
+        `${dirPath}/m3_time_check.json`,
+        JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
+        'utf-8'
+    );
+    logWithTime(`뉴스 데이터 저장 완료: ${newsArr.length}`);
+    await browser.close();
+})();

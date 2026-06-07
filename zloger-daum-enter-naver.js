@@ -6,7 +6,7 @@ const { generateThumbnail } = require('./image-generator');
 const fetch = require('node-fetch');
 const _fetch = fetch.default || fetch;
 const fs = require('fs');
-const SHOW_BROWSER = false; // 실행 중 브라우저 창 표시 여부
+const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 
 // ==========================

@@ -1,0 +1,45 @@
+name: ji3-monitor-reset
+
+on:
+  schedule:
+    - cron: '0 16 * * *'   # 새벽 1시 KST (UTC+9 → UTC 16:00)
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reset-monitor:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Reset blog-ji3-monitor.json
+        run: node blog-ji3-reset.js
+
+      - name: Commit reset monitor file
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f blog-ji3-monitor.json
+          if ! git diff --cached --quiet; then
+            git commit -m "자동 초기화: blog-ji3-monitor.json 리셋 (새벽 1시)"
+            git push -f https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }} HEAD:main
+          else
+            echo "No changes to commit"
+          fi

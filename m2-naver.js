@@ -1,5 +1,10 @@
 require('dotenv').config();
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const stealth = require('puppeteer-extra-plugin-stealth')();
+
+// Stealth 플러그인 활성화
+chromium.use(stealth);
+
 const { logWithTime, getAdItemLink, insertLinkAndRemoveUrl } = require('./common');
 const { naverLogin, checkExecutionTime } = require('./common-write');
 const { generateThumbnail } = require('./image-generator');
@@ -268,13 +273,10 @@ async function writeBlog({
   });
   const context = await browser.newContext({
     userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   });
   const page = await context.newPage();
-  // navigator.webdriver 제거 (로봇 탐지 우회)
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-  });
+
   // 팝업/알림창 자동 수락
   page.on('dialog', async dialog => {
     await dialog.accept();

@@ -41,8 +41,14 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     const dd = String(today.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}${mm}${dd}`;
 
-    // blog-ji3-monitor.json 로드 (없으면 빈 배열로 초기화)
-    const monitorPath = 'blog-ji3-monitor.json';
+    // data 디렉터리 없으면 자동 생성 (monitor 파일보다 먼저)
+    if (!fs.existsSync('data')) {
+        fs.mkdirSync('data', { recursive: true });
+        logWithTime('data 디렉터리 생성됨');
+    }
+
+    // data/ji3_monitor.json 로드 (없으면 빈 배열로 초기화)
+    const monitorPath = 'data/ji3_monitor.json';
     let crawledTitles = [];
     if (fs.existsSync(monitorPath)) {
         try {
@@ -329,12 +335,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         }
         await page.close();
     }
-    // data 디렉터리 없으면 자동 생성
     const dirPath = 'data';
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-        logWithTime('data 디렉터리 생성됨');
-    }
     fs.writeFileSync(
         `${dirPath}/ji3_data.json`,
         JSON.stringify(newsArr, null, 2),

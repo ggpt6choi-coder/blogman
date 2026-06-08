@@ -47,5 +47,13 @@ module.exports = {
     blogEnv: 'BLOG_NAME_HS',
     remoteUrl: 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/daum_entertainment_data.json',
     typeMap: 'defaultMap'
+  },
+  ji3: {
+    idEnv: 'NAVER_ID_JI3',
+    pwEnv: 'NAVER_PW_JI3',
+    blogEnv: 'BLOG_NAME_JI3',
+    remoteUrl: 'https://raw.githubusercontent.com/ggpt6choi-coder/blogman/main/data/ji3_data.json',
+    typeMap: 'defaultMap'
   }
 };
+

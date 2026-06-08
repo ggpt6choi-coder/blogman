@@ -93,3 +93,62 @@ jobs:
           else
             echo "No changes to commit"
           fi
+
+  write-blog:
+    needs: run-batch
+    if: success()
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main  # 크롤링 결과가 커밋된 최신 main을 가져옴
+
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers (only if missing)
+        run: |
+          if [ ! -d ~/.cache/ms-playwright ]; then
+            npx playwright install --with-deps
+          fi
+
+      - name: Run blog-ji3-naver.js (네이버 블로그 자동 포스팅)
+        run: node blog-ji3-naver.js > ji3_naver_log.txt 2>&1
+        env:
+          NAVER_ID_JI3: ${{ secrets.NAVER_ID_JI3 }}
+          NAVER_PW_JI3: ${{ secrets.NAVER_PW_JI3 }}
+          BLOG_NAME_JI3: ${{ secrets.BLOG_NAME_JI3 }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Upload naver log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ji3-naver-artifacts
+          path: ji3_naver_log.txt
+

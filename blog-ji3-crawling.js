@@ -336,7 +336,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         logWithTime('data 디렉터리 생성됨');
     }
     fs.writeFileSync(
-        `${dirPath}/m3_data.json`,
+        `${dirPath}/ji3_data.json`,
         JSON.stringify(newsArr, null, 2),
         'utf-8'
     );
@@ -353,7 +353,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     const seconds = String(kst.getSeconds()).padStart(2, "0");
 
     fs.writeFileSync(
-        `${dirPath}/m3_time_check.json`,
+        `${dirPath}/ji3_time_check.json`,
         JSON.stringify({ created: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00` }, null, 2),
         'utf-8'
     );

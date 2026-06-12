@@ -75,7 +75,6 @@ jobs:
           path: |
             ji3_crawl_log.txt
             data/**
-            blog-ji3-monitor.json
 
       - name: Commit data to repository
         if: always()
@@ -85,7 +84,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}
-          git add -f data/** blog-ji3-monitor.json
+          git add -f data/**
           git status
           if ! git diff --cached --quiet; then
             git commit -m "자동 업데이트: ji3 크롤링 데이터"

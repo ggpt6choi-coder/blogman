@@ -28,17 +28,22 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
     // const scList = ['sisa'];
     const newsArr = [];
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_M3);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        generationConfig: { responseMimeType: 'application/json' }
+    });
     // 테스트 목적: User-Agent에 서비스명/이메일 포함
     const userAgent = 'MyCrawler/1.0 (contact: your@email.com)';
 
     // 요청 간 5~15초 랜덤 지연 함수
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const kst = new Date(utc + 9 * 60 * 60000);
+    const yyyy = kst.getFullYear();
+    const mm = String(kst.getMonth() + 1).padStart(2, '0');
+    const dd = String(kst.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}${mm}${dd}`;
 
     // data 디렉터리 없으면 자동 생성 (monitor 파일보다 먼저)
@@ -76,7 +81,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                 url.includes('opera.com/pub/sync') ||
                 url.includes('idsync.rlcdn.com') ||
                 url.includes('turn.com') ||
-                url.match(/\\.(gif|jpg|png|svg)$/)
+                url.match(/\.(gif|jpg|png|svg)$/)
             ) {
                 return route.abort();
             }
@@ -92,7 +97,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
             }
         });
         const url = `https://news.nate.com/rank/interest?sc=${sc}&p=day&date=${dateStr}`;
-        await page.goto(url);
+        await page.goto(url, { timeout: 60000, waitUntil: 'domcontentloaded' });
         const links = await page.$$eval('.mlt01 a', (as) => as.map((a) => a.href));
         let count = 0;
         for (const link of links) {
@@ -111,7 +116,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     url.includes('opera.com/pub/sync') ||
                     url.includes('idsync.rlcdn.com') ||
                     url.includes('turn.com') ||
-                    url.match(/\\.(gif|jpg|png|svg)$/)
+                    url.match(/\.(gif|jpg|png|svg)$/)
                 ) {
                     return route.abort();
                 }
@@ -200,38 +205,51 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     const prompt = `
                     너는 네이버 홈판(AiRS) 알고리즘에 최적화된 '공감형 이야기꾼 블로거'야.
                     주어진 뉴스 기사를 재료로, 독자가 피드에서 첫 줄을 보자마자 클릭하고 끝까지 읽고 싶어지는 블로그 포스팅을 작성해.
-                    네이버 홈판은 **완독률, CTR(클릭률), 공감·저장 수**를 핵심 지표로 삼으니 이 세 가지를 극대화하는 방향으로 써줘.
+                    네이버 홈판은 **완독률, CTR(클릭률), 공감·저장 수**를 핵심 지표로 삼으니 이 세 가지를 극대화해.
 
                     [필수 출력 포맷: JSON]
                     - 결과값은 오직 JSON만 출력해. (앞뒤 잡담, Markdown 코드블록 절대 금지)
-                    - content 내 줄바꿈은 '\\n'으로, 큰따옴표는 '\\"'으로 이스케이프 처리해.
+                    - content 내 줄바꿈은 '\\n'으로 이스케이프 처리해.
+                    - **극단적 주의 (JSON 파싱 오류 원천 차단)**: newArticle의 content와 title 값 내부에서는 쌍따옴표/큰따옴표(")를 단 하나라도 사용하면 JSON 파싱이 무조건 깨집니다. 따라서 본문 내부의 인용 대사, 네티즌 반응, 댓글 등 모든 텍스트에서는 큰따옴표(")의 사용을 완전히 금지하고, 오직 작은따옴표(')만 사용하세요. 큰따옴표가 들어갈 자리는 반드시 작은따옴표로 대체해서 출력해야 합니다.
 
                     {
                         "newTitle": "공감·호기심을 자극하는 제목 (특수문자 제외, 30자 이내)",
                         "newArticle": [
                             {
-                                "title": "피드 훅: 멈추게 만드는 첫 이야기",
-                                "content": "독자가 스크롤을 멈추게 할 강렬한 공감 문장으로 시작. '저도 처음엔 믿기지 않았어요', '이거 보고 진짜 소름 돋았어요' 같은 감성 훅으로 열고, 이 이야기가 왜 지금 이 순간 중요한지를 친구한테 말하듯 풀어줘. (500자 이상)"
+                                "title": "섹션1 소제목 (아래 지침 참고)",
+                                "content": "섹션1 본문"
                             },
                             {
-                                "title": "그래서 무슨 일이 있었냐면요",
-                                "content": "사건·이슈의 전말을 마치 목격자가 옆에서 설명해주듯 생생하게 서술. '~했거든요', '~더라고요', '진짜 놀랍죠?' 같은 구어체를 섞어서 독자가 이탈 없이 읽도록 해줘. 육하원칙 기반이지만 딱딱하지 않게. (600자 이상)"
+                                "title": "섹션2 소제목",
+                                "content": "섹션2 본문"
                             },
                             {
-                                "title": "나만 이런 생각 한 거 아니죠?",
-                                "content": "이 이슈에 대한 대중 반응·공감 포인트를 소개하고, 블로거 본인의 솔직한 감상을 곁들여줘. '저는 솔직히 이 부분에서 좀 찡했어요', '여러분은 어떻게 생각하세요?' 같이 독자와 대화하듯 써줘. 댓글·공감을 자연스럽게 유도. (500자 이상)"
+                                "title": "섹션3 소제목",
+                                "content": "섹션3 본문"
                             },
                             {
-                                "title": "이게 우리 생활이랑 무슨 상관이에요?",
-                                "content": "이 이슈가 독자 일상(돈, 감정, 관계, 트렌드)에 어떤 파장을 주는지 실질적으로 풀어줘. 추상적 설명 말고, '예를 들어 이런 상황이라면~'처럼 구체적 사례로 연결. (500자 이상)"
+                                "title": "섹션4 소제목",
+                                "content": "섹션4 본문"
                             },
                             {
-                                "title": "마무리하며: 오늘도 같이 생각해봐요",
-                                "content": "전체 내용을 따뜻하게 정리하고, 독자에게 질문을 던지거나 응원·공감으로 마무리. '좋아요·댓글로 의견 나눠주세요'처럼 자연스럽게 반응을 유도해. (300자 이상)"
+                                "title": "섹션5 소제목",
+                                "content": "섹션5 본문"
                             }
                         ],
                         "hashTag": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5"]
                     }
+
+                    [📌 소제목 작성 규칙 - 매우 중요]
+                    - 소제목은 절대 고정된 문구("피드 훅: 멈추게 만드는 첫 이야기", "그래서 무슨 일이 있었냐면요" 등)를 반복하지 마.
+                    - 매번 기사 내용·분위기에 맞게 완전히 새로운 소제목을 만들어.
+                    - 각 섹션의 역할:
+                      · 섹션1: 독자를 잡아당기는 감성 훅 + 이 글을 읽어야 할 이유 (500자 이상)
+                      · 섹션2: 사건 전말을 생생하게 스토리텔링 (600자 이상)
+                      · 섹션3: 대중 반응 + 블로거 솔직 감상 + 독자와 대화 (500자 이상)
+                      · 섹션4: 독자 일상/감정과의 연결 고리 (500자 이상)
+                      · 섹션5: 따뜻한 마무리 + 댓글·공감 유도 (300자 이상)
+                    - 소제목 5개가 모두 다른 형태여야 해. 비슷한 구조 반복 금지.
+                    - **매 기사마다 완전히 다른 소제목을 써줘.**
 
                     [🏠 홈판 노출 핵심 전략 1: 클릭을 부르는 제목]
                     - 메인 키워드를 제목 앞부분에 배치하되, **궁금증·공감·놀라움**을 자극하는 형태로 써.
@@ -241,7 +259,7 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
 
                     [🏠 홈판 노출 핵심 전략 2: 완독률을 높이는 글쓰기]
                     - **도입부 첫 2~3문장**이 피드 미리보기에 노출됨 → 이 부분이 가장 중요. 반드시 감성 훅으로 시작해.
-                    - 전체 글자 수 **2,500자 이상** 목표. 단, 지루하지 않게 스토리 흐름을 유지해.
+                    - 전체 글자 수 **3,000자 이상** 목표. 단, 지루하지 않게 스토리 흐름을 유지해.
                     - 소제목은 딱딱한 명사형보다 **질문형·감탄형**으로 써서 계속 읽고 싶게 만들어.
                     - 문단 사이에 짧은 감탄·공감 문장("정말 대단하지 않나요?", "저도 이 부분에서 멈췄어요.")을 자연스럽게 삽입.
 
@@ -253,6 +271,14 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
                     - 말투: "~했거든요", "~더라고요", "~잖아요", "진짜요?", "완전 공감이에요" 등 구어체 위주.
                     - 감정 표현 적극 활용 (놀람, 안타까움, 응원, 웃음 등).
                     - 절대 합쇼체(~입니다, ~합니다)로만 쓰지 마. 딱딱해 보여서 홈판 이탈률 올라감.
+                    - **매번 다른 감성·분위기·소제목으로 써줘. 이전 글과 똑같은 패턴 절대 금지.**
+
+                    [📱 모바일 최적화 레이아웃 지침 - 매우 중요]
+                    - 모바일 스마트폰 화면에서 글이 잘리고 어색해지는 것을 막기 위해 다음 지침을 반드시 따르세요.
+                    - 전체 글을 **가운데 정렬(Center Alignment)** 해서 읽는다고 가정하고 문장을 구성하세요.
+                    - **한 줄의 길이는 공백 포함 13자 ~ 18자 내외**로 아주 짧게 작성하세요. 스마트폰 가로 폭 안에서 줄이 자동으로 깨지지 않고 자연스럽게 전체 어절이 출력되도록 하기 위함입니다.
+                    - 문장의 호흡과 어절 단위에 맞추어 의도적으로 **줄바꿈('\\n')**을 넣어 아래 줄로 내리세요.
+                    - 네이버 에디터 특성상 '\\n'을 한 번만 입력해도 문단 구분을 위한 충분한 여백이 생기므로, 절대 '\\n\\n'을 사용하지 말고 오직 단일 '\\n'만 사용하여 줄바꿈을 처리하세요.
 
                     [입력 데이터]
                     - 원본 제목: ${title}
@@ -342,16 +368,16 @@ async function generateContentWithRetry(model, prompt, retries = 3, delayMs = 20
         'utf-8'
     );
 
-    const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const kst = new Date(utc + 9 * 60 * 60000);
+    const endNow = new Date();
+    const endUtc = endNow.getTime() + endNow.getTimezoneOffset() * 60000;
+    const endKst = new Date(endUtc + 9 * 60 * 60000);
     // KST 기준 시각을 구성
-    const year = kst.getFullYear();
-    const month = String(kst.getMonth() + 1).padStart(2, "0");
-    const day = String(kst.getDate()).padStart(2, "0");
-    const hours = String(kst.getHours()).padStart(2, "0");
-    const minutes = String(kst.getMinutes()).padStart(2, "0");
-    const seconds = String(kst.getSeconds()).padStart(2, "0");
+    const year = endKst.getFullYear();
+    const month = String(endKst.getMonth() + 1).padStart(2, "0");
+    const day = String(endKst.getDate()).padStart(2, "0");
+    const hours = String(endKst.getHours()).padStart(2, "0");
+    const minutes = String(endKst.getMinutes()).padStart(2, "0");
+    const seconds = String(endKst.getSeconds()).padStart(2, "0");
 
     fs.writeFileSync(
         `${dirPath}/ji3_time_check.json`,

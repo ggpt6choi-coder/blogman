@@ -4,17 +4,15 @@ on:
   schedule:
     # KST 08:00 ~ 18:00, 30분 간격 (UTC 기준)
     # KST = UTC + 9h  →  UTC 23:xx ~ 09:xx
-    - cron: "0,30 23 * * *" # KST 08:00, 08:30
-    - cron: "0,30 0 * * *" # KST 09:00, 09:30
-    - cron: "0,30 1 * * *" # KST 10:00, 10:30
-    - cron: "0,30 2 * * *" # KST 11:00, 11:30
-    - cron: "0,30 3 * * *" # KST 12:00, 12:30
-    - cron: "0,30 4 * * *" # KST 13:00, 13:30
-    - cron: "0,30 5 * * *" # KST 14:00, 14:30
-    - cron: "0,30 6 * * *" # KST 15:00, 15:30
-    - cron: "0,30 7 * * *" # KST 16:00, 16:30
-    - cron: "0,30 8 * * *" # KST 17:00, 17:30
-    - cron: "0 9 * * *" # KST 18:00
+    - cron: "0 23 * * *" # KST 08:00, 08:30
+    - cron: "0 0 * * *" # KST 09:00, 09:30
+    - cron: "0 1 * * *" # KST 10:00, 10:30
+    - cron: "0 2 * * *" # KST 11:00, 11:30
+    - cron: "0 3 * * *" # KST 12:00, 12:30
+    - cron: "0 4 * * *" # KST 13:00, 13:30
+    - cron: "0 5 * * *" # KST 14:00, 14:30
+    - cron: "0 6 * * *" # KST 15:00, 15:30
+    - cron: "0 7 * * *" # KST 16:00, 16:30
 
   workflow_dispatch:
 
@@ -106,7 +104,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: main  # 크롤링 결과가 커밋된 최신 main을 가져옴
+          ref: main # 크롤링 결과가 커밋된 최신 main을 가져옴
 
       - name: Cache Node modules
         uses: actions/cache@v3
@@ -127,7 +125,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm install
@@ -152,4 +150,3 @@ jobs:
         with:
           name: ji3-naver-artifacts
           path: ji3_naver_log.txt
-

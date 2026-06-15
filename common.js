@@ -491,6 +491,54 @@ const resetStyle = async (frame) => {
   }
 };
 
+//✅ JSON 내 이스케이프되지 않은 큰따옴표(")를 작은따옴표(')로 치환해 주는 상태 머신 함수
+function cleanUnescapedJsonQuotes(str) {
+  let result = '';
+  let inString = false;
+  let escapeNext = false;
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (escapeNext) {
+      result += char;
+      escapeNext = false;
+      continue;
+    }
+    if (char === '\\') {
+      result += char;
+      escapeNext = true;
+      continue;
+    }
+    if (char === '"') {
+      if (!inString) {
+        inString = true;
+        result += char;
+      } else {
+        // Look ahead to see if it's structural
+        let isClosing = false;
+        let j = i + 1;
+        while (j < str.length && /\s/.test(str[j])) {
+          j++;
+        }
+        if (j < str.length && (str[j] === ',' || str[j] === '}' || str[j] === ']' || str[j] === ':')) {
+          isClosing = true;
+        } else if (j >= str.length) {
+          isClosing = true;
+        }
+        
+        if (isClosing) {
+          inString = false;
+          result += char;
+        } else {
+          result += "'"; // Replace inner quote with single quote
+        }
+      }
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
 //✅ Gemini 응답 파싱 헬퍼 함수
 const parseGeminiResponse = (raw) => {
   let parsedData = null;
@@ -511,7 +559,13 @@ const parseGeminiResponse = (raw) => {
         try {
           parsedData = JSON.parse(jsonCandidate);
         } catch (e3) {
-          console.log('JSON parsing failed even with substring extraction. Raw:', raw);
+          // Try sanitizing unescaped inner quotes as a last resort
+          try {
+            const sanitized = cleanUnescapedJsonQuotes(jsonCandidate);
+            parsedData = JSON.parse(sanitized);
+          } catch (e4) {
+            console.log('JSON parsing failed even with sanitization. Raw:', raw);
+          }
         }
       } else {
         console.log('JSON parsing failed. Raw:', raw);

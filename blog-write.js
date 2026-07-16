@@ -183,71 +183,76 @@ async function writeBlog({
   // 본문 입력 처리 (content: Array)
   if (Array.isArray(content)) {
     for (const section of content) {
-      // 1. 텍스트 타입 처리
-      if (section.type === 'text') {
-        // 소제목(subtitle)이 있는 경우 - 인용구 스타일 적용
-        if (section.subtitle) {
-          // 인용구(소제목) 버튼 클릭
-          await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
-          await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
+      // 소제목(subtitle)이 있는 경우 - 인용구 스타일 적용
+      if (section.subtitle) {
+        // 인용구(소제목) 버튼 클릭
+        await frame.click('button.se-text-icon-toolbar-select-option-button.__se-sentry', { clickCount: 1, delay: 100 });
+        await frame.click('button.se-toolbar-option-insert-quotation-quotation_underline-button', { clickCount: 1, delay: 100 });
+        await frame.waitForTimeout(500);
+
+        // 포커스가 인용구에 있을 것이므로 키보드로 입력
+        await page.keyboard.type(section.subtitle, { delay: 40 });
+
+        // 소제목 빠져나오기 (하단 클릭)
+        try {
+          await page.keyboard.press('PageDown');
           await frame.waitForTimeout(500);
-
-          // 포커스가 인용구에 있을 것이므로 키보드로 입력
-          await page.keyboard.type(section.subtitle, { delay: 40 });
-
-          // 소제목 빠져나오기 (하단 클릭)
-          try {
-            await page.keyboard.press('PageDown');
-            await frame.waitForTimeout(500);
-            const bottomBtn = await frame.waitForSelector('div.se-canvas-bottom', { timeout: 3000 });
-            if (bottomBtn) await bottomBtn.click();
-          } catch (e) {
-            console.log('하단 버튼 클릭 실패, 키보드로 이동 시도');
-            await page.keyboard.press('ArrowDown');
-            await page.keyboard.press('Enter');
-            await frame.waitForTimeout(200);
-            await page.keyboard.press('ArrowDown');
-          }
+          const bottomBtn = await frame.waitForSelector('div.se-canvas-bottom', { timeout: 3000 });
+          if (bottomBtn) await bottomBtn.click();
+        } catch (e) {
+          console.log('하단 버튼 클릭 실패, 키보드로 이동 시도');
+          await page.keyboard.press('ArrowDown');
+          await page.keyboard.press('Enter');
           await frame.waitForTimeout(200);
+          await page.keyboard.press('ArrowDown');
         }
+        await frame.waitForTimeout(200);
+      }
 
-        // 본문 내용(value) 입력
-        if (section.value) {
-          await applyDefaultStyle(frame); // 스타일 강제 적용
+      // 본문 내용(body) 입력
+      if (section.body) {
+        await applyDefaultStyle(frame); // 스타일 강제 적용
 
-          // \n, \n\n 처리를 위해 split 후 한 줄씩 입력
-          const lines = section.value.split('\n');
-          for (let k = 0; k < lines.length; k++) {
-            const line = lines[k];
-            if (line) {
-              await page.keyboard.type(line, { delay: 10 });
+        // \n, \n\n 처리를 위해 split 후 한 줄씩 입력
+        const lines = section.body.split('\n');
+        for (let k = 0; k < lines.length; k++) {
+          const line = lines[k];
+          if (line) {
+            // 이미지 패턴 검색 (예: (IMG_6989.jpg) 또는 (IMG_6989.png))
+            const imgPattern = /\((IMG_\d+\.(?:jpg|jpeg|png))\)/gi;
+            let lastIndex = 0;
+            let match;
+
+            while ((match = imgPattern.exec(line)) !== null) {
+              const textBefore = line.substring(lastIndex, match.index);
+              const imgName = match[1];
+
+              if (textBefore.trim()) {
+                await page.keyboard.type(textBefore, { delay: 10 });
+              }
+
+              // 이미지 가이드 삽입 및 줄바꿈
+              await page.keyboard.press('Enter');
+              await page.keyboard.type(`📷 [사진 넣을 곳: ${imgName}]`, { delay: 20 });
+              await page.keyboard.press('Enter');
+              await frame.waitForTimeout(100);
+
+              lastIndex = imgPattern.lastIndex;
             }
-            // 줄바꿈 (빈 줄이면 그냥 엔터만 입력되어 공백 라인이 생김)
-            await page.keyboard.press('Enter');
-            // 너무 빠르면 씹힐 수 있으므로 약간의 딜레이
-            if (lines.length > 5) await frame.waitForTimeout(50);
+
+            const textAfter = line.substring(lastIndex);
+            if (textAfter.trim()) {
+              await page.keyboard.type(textAfter, { delay: 10 });
+            }
           }
-          await frame.waitForTimeout(100);
+          // 줄바꿈 (빈 줄이면 그냥 엔터만 입력되어 공백 라인이 생김)
+          await page.keyboard.press('Enter');
+          // 너무 빠르면 씹힐 수 있으므로 약간의 딜레이
+          if (lines.length > 5) await frame.waitForTimeout(50);
         }
         await frame.waitForTimeout(100);
       }
-
-      // 2. 이미지 타입 처리
-      else if (section.type === 'image') {
-        if (section.guide) {
-          console.log(`[이미지 가이드 작성] ${section.guide}`);
-
-          // 가이드 텍스트 입력 (괄호로 묶어서 구분)
-          await page.keyboard.press('Enter');
-          const guideText = `📷 [사진 넣을 곳: ${section.guide}]`;
-          await page.keyboard.type(guideText, { delay: 20 });
-
-          // 입력 후 줄바꿈 2번 (구분감 확보)
-          await page.keyboard.press('Enter');
-          await page.keyboard.press('Enter');
-          await frame.waitForTimeout(100);
-        }
-      }
+      await frame.waitForTimeout(100);
     }
   }
 
@@ -298,7 +303,8 @@ async function writeBlog({
   // 데이터 파일 읽기
   let blogPosts = [];
   try {
-    blogPosts = JSON.parse(fs.readFileSync('./blog-goods-data.json', 'utf8'));
+    // blog-goods-data.json 대신 이미 상단에서 로드된 contentsData(blog-data.json)를 리스트에 담아둡니다.
+    blogPosts = [contentsData];
   } catch (err) {
     console.error('데이터 파일 읽기 실패:', err);
     process.exit(1);

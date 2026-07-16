@@ -12,7 +12,14 @@ async function naverLogin(page) {
   await page.goto('https://nid.naver.com/nidlogin.login');
   await page.fill('#id', process.env.NAVER_ID_JI);
   await page.fill('#pw', process.env.NAVER_PW_JI.replace(/"/g, ''));
-  await page.click('#log\\.login');
+  
+  // A/B 테스트 및 구조 변경 대비: 새로운 로그인 버튼 또는 기존 로그인 버튼 중 화면에 보이는 것 클릭
+  try {
+    await page.click('button[id^="loginBtn_"]:visible, #log\\.login:visible', { timeout: 5000 });
+  } catch (e) {
+    await page.click('#loginBtn_column, #loginBtn_row, #log\\.login');
+  }
+  
   await page.waitForNavigation();
 }
 

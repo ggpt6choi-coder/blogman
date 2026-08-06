@@ -1,8 +1,8 @@
 name: ji3-monitor-reset
 
 on:
-  schedule:
-    - cron: '0 16 * * *'   # 새벽 1시 KST (UTC+9 → UTC 16:00)
+  #schedule:
+  #- cron: '0 16 * * *'   # 새벽 1시 KST (UTC+9 → UTC 16:00)
 
   workflow_dispatch:
 
@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm install

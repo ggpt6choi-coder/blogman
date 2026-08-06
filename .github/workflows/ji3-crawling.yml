@@ -1,18 +1,18 @@
 name: ji3-crawling [blog-ji3]
 
 on:
-  schedule:
-    # KST 08:00 ~ 18:00, 30분 간격 (UTC 기준)
-    # KST = UTC + 9h  →  UTC 23:xx ~ 09:xx
-    - cron: "0 23 * * *" # KST 08:00, 08:30
-    - cron: "0 0 * * *" # KST 09:00, 09:30
-    - cron: "0 1 * * *" # KST 10:00, 10:30
-    - cron: "0 2 * * *" # KST 11:00, 11:30
-    - cron: "0 3 * * *" # KST 12:00, 12:30
-    - cron: "0 4 * * *" # KST 13:00, 13:30
-    - cron: "0 5 * * *" # KST 14:00, 14:30
-    - cron: "0 6 * * *" # KST 15:00, 15:30
-    - cron: "0 7 * * *" # KST 16:00, 16:30
+  #schedule:
+  # KST 08:00 ~ 18:00, 30분 간격 (UTC 기준)
+  # KST = UTC + 9h  →  UTC 23:xx ~ 09:xx
+  #- cron: "0 23 * * *" # KST 08:00, 08:30
+  #- cron: "0 0 * * *" # KST 09:00, 09:30
+  #- cron: "0 1 * * *" # KST 10:00, 10:30
+  #- cron: "0 2 * * *" # KST 11:00, 11:30
+  #- cron: "0 3 * * *" # KST 12:00, 12:30
+  #- cron: "0 4 * * *" # KST 13:00, 13:30
+  #- cron: "0 5 * * *" # KST 14:00, 14:30
+  #- cron: "0 6 * * *" # KST 15:00, 15:30
+  #- cron: "0 7 * * *" # KST 16:00, 16:30
 
   workflow_dispatch:
 

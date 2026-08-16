@@ -885,7 +885,8 @@ async function writeBlog({
   // 데이터 파일 읽기
   let blogPosts = [];
   try {
-    blogPosts = JSON.parse(fs.readFileSync('./blog-goods-data.json', 'utf8'));
+    const rawJson = fs.readFileSync('./blog-goods-data.json', 'utf8').replace(/\u00a0/g, ' ');
+    blogPosts = JSON.parse(rawJson);
   } catch (err) {
     console.error('데이터 파일 읽기 실패:', err);
     process.exit(1);

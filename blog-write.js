@@ -4,7 +4,8 @@ const { logWithTime } = require('./common');
 const fs = require('fs');
 const path = require('path');
 
-const contentsData = JSON.parse(fs.readFileSync(path.join(__dirname, 'blog-data.json'), 'utf8'));
+const rawData = fs.readFileSync(path.join(__dirname, 'blog-data.json'), 'utf8').replace(/\u00a0/g, ' ');
+const contentsData = JSON.parse(rawData);
 const SHOW_BROWSER = true; // 실행 중 브라우저 창 표시 여부
 
 // ==========================

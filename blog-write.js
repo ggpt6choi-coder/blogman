@@ -161,10 +161,35 @@ async function writeBlog({
   const contentSpanSelector =
     'div.se-component.se-text .se-component-content p.se-text-paragraph span.se-ff-nanumgothic.se-fs15.__se-node';
 
-  // 2. 썸네일 이미지 생성 및 업로드 (상단)
   // 제목 입력 후 엔터를 쳐서 본문 첫 줄 생성
   await page.keyboard.press('Enter');
   await frame.waitForTimeout(500);
+
+  // 상단 작성자 표기 ('글/사진 fooodzip')
+  await applyDefaultStyle(frame);
+  await page.keyboard.type('글/사진 fooodzip', { delay: 30 });
+  await page.keyboard.press('Enter');
+  await frame.waitForTimeout(300);
+
+  // 구분선(line3 기호) 추가
+  try {
+    const hrDropdown = await frame.$('li.se-toolbar-item-insert-horizontal-line button, button.se-insert-horizontal-line-toolbar-button');
+    if (hrDropdown) {
+      await hrDropdown.click();
+      await frame.waitForTimeout(200);
+    }
+    const line3Btn = await frame.$('button.se-toolbar-option-insert-horizontal-line-line3-button');
+    if (line3Btn) {
+      await line3Btn.click();
+      await frame.waitForTimeout(300);
+    }
+    // 구분선 삽입 후 아래로 이동하여 새 문단 생성
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+  } catch (e) {
+    console.log('구분선 삽입 실패:', e.message);
+  }
+  await frame.waitForTimeout(300);
 
   // 1-1. URL이 있는 경우 'sentence.png' 이미지 삽입 (맨 상단) - 제거됨
   // if (url) { ... }
@@ -254,6 +279,19 @@ async function writeBlog({
         await frame.waitForTimeout(100);
       }
       await frame.waitForTimeout(100);
+    }
+
+    // ==========================
+    // 🔵 연관 주제(주변 코스) 입력 추가
+    // ==========================
+    if (contentsData.related_topics && contentsData.related_topics.length > 0) {
+      await applyDefaultStyle(frame);
+      for (const topic of contentsData.related_topics) {
+        await page.keyboard.type(topic, { delay: 20 });
+        await page.keyboard.press('Enter');
+      }
+      await page.keyboard.press('Enter'); // 구분용 추가 엔터
+      await frame.waitForTimeout(200);
     }
   }
 

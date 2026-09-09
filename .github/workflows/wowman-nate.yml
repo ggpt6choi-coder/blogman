@@ -1,9 +1,8 @@
 name: nate-crawling [wow*****]
 
 on:
-  schedule:
-  # schedule:
-    - cron: '0 22 * * *' # 한국시간 오전 7시
+  #schedule:
+    #- cron: '0 22 * * *' # 한국시간 오전 7시
 
   workflow_dispatch:
 

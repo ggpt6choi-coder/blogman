@@ -324,8 +324,8 @@ async function writeBlog({
 
   // 발행 세팅 -> 임시저장으로 변경
   try {
-    // 저장 버튼 (HTML 분석 결과: save_btn__bzc5B)
-    const saveBtnSelector = 'button.save_btn__bzc5B';
+    // 저장 버튼 (해시 변경 대응: data-click-area 또는 class prefix 사용)
+    const saveBtnSelector = 'button[data-click-area="tpb.save"], button[class*="save_btn"]';
     await frame.waitForSelector(saveBtnSelector, { timeout: 5000 });
     await frame.click(saveBtnSelector);
     await frame.waitForTimeout(1500); // 저장 완료 대기
